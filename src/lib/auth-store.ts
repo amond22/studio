@@ -49,21 +49,31 @@ const DEFAULT_USERS: User[] = [
   }
 ];
 
+/**
+ * Retrieves the current list of users from localStorage.
+ * Always initializes with DEFAULT_USERS if empty.
+ */
 export const getStoredUsers = (): User[] => {
   if (typeof window === 'undefined') return DEFAULT_USERS;
+  
   const stored = localStorage.getItem('eduscan_users');
   if (!stored) {
     localStorage.setItem('eduscan_users', JSON.stringify(DEFAULT_USERS));
     return DEFAULT_USERS;
   }
+  
   try {
     const parsed = JSON.parse(stored);
     return Array.isArray(parsed) ? parsed : DEFAULT_USERS;
   } catch (e) {
+    console.error("Failed to parse stored users:", e);
     return DEFAULT_USERS;
   }
 };
 
+/**
+ * Saves a new user list to localStorage.
+ */
 export const saveUsers = (users: User[]) => {
   if (typeof window !== 'undefined') {
     localStorage.setItem('eduscan_users', JSON.stringify(users));
@@ -72,18 +82,20 @@ export const saveUsers = (users: User[]) => {
   }
 };
 
+/**
+ * Authenticates a user based on ID, Role, and Password.
+ */
 export const login = (userId: string, role: UserRole, passwordInput: string): User | null => {
+  // Always fetch fresh users from storage to ensure newly created ones are included
   const users = getStoredUsers();
   
-  // Clean inputs for matching
   const cleanId = userId.trim().toLowerCase();
   const cleanPass = passwordInput.trim();
   
-  // Case-insensitive ID check, strict role and password check
   const user = users.find(u => 
     u.id.toLowerCase() === cleanId && 
     u.role === role && 
-    (u.password === cleanPass || !u.password && cleanPass === "")
+    (u.password === cleanPass)
   );
 
   if (user) {
@@ -92,7 +104,20 @@ export const login = (userId: string, role: UserRole, passwordInput: string): Us
     }
     return user;
   }
+  
   return null;
+};
+
+export const getCurrentUser = (): User | null => {
+  if (typeof window === 'undefined') return null;
+  const session = localStorage.getItem('user_session');
+  return session ? JSON.parse(session) : null;
+};
+
+export const logout = () => {
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('user_session');
+  }
 };
 
 export const updateUserProfile = (updatedData: Partial<User>): User | null => {
@@ -112,16 +137,4 @@ export const updateUserProfile = (updatedData: Partial<User>): User | null => {
     return updatedUser;
   }
   return null;
-};
-
-export const getCurrentUser = (): User | null => {
-  if (typeof window === 'undefined') return null;
-  const session = localStorage.getItem('user_session');
-  return session ? JSON.parse(session) : null;
-};
-
-export const logout = () => {
-  if (typeof window !== 'undefined') {
-    localStorage.removeItem('user_session');
-  }
 };

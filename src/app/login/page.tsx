@@ -9,19 +9,24 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { UserRole, login, getCurrentUser } from "@/lib/auth-store";
+import { UserRole, login, getCurrentUser, getStoredUsers } from "@/lib/auth-store";
 import { useToast } from "@/hooks/use-toast";
-import { KeyRound, User as UserIcon, Building2, Info, ArrowRight, Loader2 } from "lucide-react";
+import { KeyRound, User as UserIcon, Building2, Info, ArrowRight, Loader2, AlertCircle } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export default function LoginPage() {
   const [role, setRole] = useState<UserRole>("Student");
   const [userId, setUserId] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
 
   useEffect(() => {
+    // Force initialize users in storage on component mount
+    getStoredUsers();
+    
     const user = getCurrentUser();
     if (user) {
       router.push("/dashboard");
@@ -31,8 +36,9 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setShowHelp(false);
 
-    // Short artificial delay for UX feel
+    // Artificial delay for feedback
     await new Promise((resolve) => setTimeout(resolve, 800));
 
     const user = login(userId, role, password);
@@ -44,6 +50,7 @@ export default function LoginPage() {
       });
       router.push("/dashboard");
     } else {
+      setShowHelp(true);
       toast({
         variant: "destructive",
         title: "Access Denied",
@@ -123,13 +130,27 @@ export default function LoginPage() {
                 </div>
               </div>
 
+              {showHelp && (
+                <Alert variant="destructive" className="bg-destructive/5 text-destructive border-destructive/20">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle className="text-xs font-bold">Authentication Tips</AlertTitle>
+                  <AlertDescription className="text-[11px] leading-relaxed">
+                    1. Ensure the <strong>Account Type</strong> matches the user's role.<br/>
+                    2. User IDs are case-insensitive (e.g., 'admin' is same as 'Admin').<br/>
+                    3. Passwords are <strong>case-sensitive</strong>.
+                  </AlertDescription>
+                </Alert>
+              )}
+
               <div className="p-4 bg-primary/5 rounded-xl border border-primary/10">
                 <div className="flex items-center gap-2 mb-2">
                   <Info className="w-4 h-4 text-primary" />
-                  <p className="font-bold text-primary text-[10px] uppercase tracking-widest">Account Note</p>
+                  <p className="font-bold text-primary text-[10px] uppercase tracking-widest">Login Help</p>
                 </div>
                 <p className="text-[11px] text-muted-foreground leading-relaxed">
-                  Ensure the correct <strong>Account Type</strong> is selected before signing in. New accounts created in Admin Panel are available immediately.
+                  Default Admin: <strong>admin</strong> / <strong>admin-password</strong><br/>
+                  Default Teacher: <strong>teacher</strong> / <strong>teacher-password</strong><br/>
+                  Default Student: <strong>student</strong> / <strong>student-password</strong>
                 </p>
               </div>
             </CardContent>

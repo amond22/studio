@@ -6,7 +6,7 @@ import { Html5Qrcode } from "html5-qrcode";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, AlertTriangle, Scan, Wifi, ShieldOff, Camera, RefreshCw, XCircle } from "lucide-react";
+import { CheckCircle2, Scan, Wifi, ShieldOff, Camera, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { getCurrentUser, recordScanAttendance } from "@/lib/auth-store";
@@ -20,8 +20,27 @@ export default function StudentScannerPage() {
   const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
   const { toast } = useToast();
 
+  const stopScanner = async () => {
+    if (html5QrCodeRef.current) {
+      try {
+        // Only stop if the scanner is actually in a scanning state
+        if (html5QrCodeRef.current.isScanning) {
+          await html5QrCodeRef.current.stop();
+        }
+      } catch (err) {
+        // Silently handle cases where stop is called on an inactive scanner
+        console.warn("Scanner already stopped or failed to stop:", err);
+      } finally {
+        setScanning(false);
+      }
+    }
+  };
+
   const startScanner = async () => {
     try {
+      // Ensure any existing scanner is stopped before creating a new one
+      await stopScanner();
+      
       const html5QrCode = new Html5Qrcode("reader");
       html5QrCodeRef.current = html5QrCode;
 
@@ -53,9 +72,7 @@ export default function StudentScannerPage() {
   useEffect(() => {
     startScanner();
     return () => {
-      if (html5QrCodeRef.current) {
-        html5QrCodeRef.current.stop().catch(e => console.error(e));
-      }
+      stopScanner();
     };
   }, []);
 
@@ -75,7 +92,7 @@ export default function StudentScannerPage() {
       const success = recordScanAttendance({
         studentId: user.id,
         studentName: user.name,
-        subjectId: qrData.subjectId || qrData.id, // Support different QR versions
+        subjectId: qrData.subjectId || qrData.id,
         subjectName: qrData.subject,
         faculty: qrData.faculty,
         semester: qrData.semester || user.semester || 1
@@ -89,10 +106,7 @@ export default function StudentScannerPage() {
         });
         
         // Stop the camera once successful
-        if (html5QrCodeRef.current) {
-          await html5QrCodeRef.current.stop();
-          setScanning(false);
-        }
+        await stopScanner();
       } else {
         toast({
           variant: "destructive",

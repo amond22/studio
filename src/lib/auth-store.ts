@@ -30,6 +30,7 @@ export interface AttendanceRecord {
   date: string;
   status: 'Present' | 'Absent' | 'Late';
   markedBy: string;
+  timestamp?: string;
 }
 
 const DEFAULT_USERS: User[] = [
@@ -107,11 +108,14 @@ export const markManualAttendance = (records: Omit<AttendanceRecord, 'id'>[]) =>
   const updatedRecords = [...currentRecords, ...newRecordsWithIds];
   saveAttendanceRecords(updatedRecords);
 
+  // Update rates for all involved students
   const users = getStoredUsers();
-  newRecordsWithIds.forEach(rec => {
-    const userIdx = users.findIndex(u => u.id === rec.studentId);
+  const uniqueStudentIds = Array.from(new Set(records.map(r => r.studentId)));
+  
+  uniqueStudentIds.forEach(studentId => {
+    const userIdx = users.findIndex(u => u.id === studentId);
     if (userIdx !== -1) {
-      const studentRecords = updatedRecords.filter(r => r.studentId === rec.studentId);
+      const studentRecords = updatedRecords.filter(r => r.studentId === studentId);
       const presentCount = studentRecords.filter(r => r.status === 'Present' || r.status === 'Late').length;
       const totalCount = studentRecords.length;
       users[userIdx].attendanceRate = Math.round((presentCount / totalCount) * 100);
@@ -120,11 +124,71 @@ export const markManualAttendance = (records: Omit<AttendanceRecord, 'id'>[]) =>
   saveUsers(users);
 };
 
+export const recordScanAttendance = (data: {
+  studentId: string;
+  studentName: string;
+  subjectId: string;
+  subjectName: string;
+  faculty: string;
+  semester: number;
+}) => {
+  const records = getAttendanceRecords();
+  const today = new Date().toISOString().split('T')[0];
+  
+  // Prevent duplicate scans for the same subject on the same day
+  const alreadyMarked = records.find(r => 
+    r.studentId === data.studentId && 
+    r.subjectId === data.subjectId && 
+    r.date === today
+  );
+  
+  if (alreadyMarked) return false;
+
+  const newRecord: AttendanceRecord = {
+    id: Math.random().toString(36).substr(2, 9),
+    studentId: data.studentId,
+    studentName: data.studentName,
+    subjectId: data.subjectId,
+    subjectName: data.subjectName,
+    faculty: data.faculty,
+    semester: data.semester,
+    section: "A", // Default or extracted
+    date: today,
+    status: 'Present',
+    markedBy: 'QR Scanner',
+    timestamp: new Date().toISOString()
+  };
+
+  const updatedRecords = [...records, newRecord];
+  saveAttendanceRecords(updatedRecords);
+
+  // Update student rate
+  const users = getStoredUsers();
+  const userIdx = users.findIndex(u => u.id === data.studentId);
+  if (userIdx !== -1) {
+    const studentRecords = updatedRecords.filter(r => r.studentId === data.studentId);
+    const presentCount = studentRecords.filter(r => r.status === 'Present' || r.status === 'Late').length;
+    const totalCount = studentRecords.length;
+    users[userIdx].attendanceRate = Math.round((presentCount / totalCount) * 100);
+    saveUsers(users);
+    
+    // Update active session if necessary
+    const session = localStorage.getItem('user_session');
+    if (session) {
+      const parsedSession = JSON.parse(session);
+      if (parsedSession.id === data.studentId) {
+        localStorage.setItem('user_session', JSON.stringify(users[userIdx]));
+      }
+    }
+  }
+
+  return true;
+};
+
 export const login = (userId: string, passwordInput: string, role: UserRole): User | null => {
   const users = getStoredUsers();
   const cleanId = userId.trim().toLowerCase();
   
-  // Login: Find user by ID (case-insensitive), Password (case-sensitive), and Role
   const user = users.find(u => 
     u.id.toLowerCase() === cleanId && u.password === passwordInput && u.role === role
   );

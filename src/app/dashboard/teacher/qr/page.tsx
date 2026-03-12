@@ -28,7 +28,6 @@ export default function GenerateQRPage() {
   const [timeLeft, setTimeLeft] = useState(60);
   const { toast } = useToast();
 
-  // Filter subjects based on selected faculty and semester
   const filteredSubjects = MOCK_SUBJECTS.filter(s => {
     const facultyMatch = faculty === "all" || s.faculty === faculty;
     const semesterMatch = !semester || semester === "all" || s.semester === semester;
@@ -47,8 +46,10 @@ export default function GenerateQRPage() {
     const selectedSub = MOCK_SUBJECTS.find(s => s.id === subject);
     const uniqueId = JSON.stringify({
       id: `ATT-${subject}-${Date.now()}`,
+      subjectId: selectedSub?.id,
       subject: selectedSub?.name,
       faculty: selectedSub?.faculty,
+      semester: parseInt(selectedSub?.semester || "1"),
       timestamp: new Date().toISOString()
     });
     
@@ -97,7 +98,7 @@ export default function GenerateQRPage() {
               </Label>
               <Select value={faculty} onValueChange={(val) => {
                 setFaculty(val);
-                setSubject(""); // Reset subject on filter change
+                setSubject("");
               }}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select Faculty" />
@@ -118,7 +119,7 @@ export default function GenerateQRPage() {
               </Label>
               <Select value={semester} onValueChange={(val) => {
                 setSemester(val);
-                setSubject(""); // Reset subject on filter change
+                setSubject("");
               }}>
                 <SelectTrigger>
                   <SelectValue placeholder="All Semesters" />
@@ -211,8 +212,8 @@ export default function GenerateQRPage() {
                 <div className="w-full flex items-start gap-3 p-4 bg-accent/5 rounded-2xl text-accent border border-accent/10">
                   <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
                   <div className="text-sm">
-                    <p className="font-bold mb-1">Security Enforcement Active</p>
-                    <p className="opacity-80 italic">Only students connected to Balmiki_Lincoln_WiFi can scan this code.</p>
+                    <p className="font-bold mb-1">Real-Time Sync Active</p>
+                    <p className="opacity-80 italic">Student scans are instantly linked to your Attendance Report dashboard.</p>
                   </div>
                 </div>
               </motion.div>

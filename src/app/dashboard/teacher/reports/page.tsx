@@ -57,7 +57,7 @@ export default function TeacherReportsPage() {
         </Card>
         <Card className="border-none shadow-sm">
           <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-bold uppercase text-muted-foreground tracking-widest">Critical Attendance ( < 75% )</CardTitle>
+            <CardTitle className="text-xs font-bold uppercase text-muted-foreground tracking-widest">Critical Attendance ( &lt; 75% )</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-destructive">12 Students</div>

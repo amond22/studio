@@ -95,7 +95,7 @@ const DEFAULT_USERS: User[] = [
 
 const DEFAULT_FACULTIES: Faculty[] = [
   { id: "BIT", name: "BIT", longName: "Bachelor of Information Technology", semesters: 8, subjects: 42 },
-  { id: "BBA", name: "BBA", longName: "Bachelor of Business Administration", semesters: 8, subjects: 38 },
+  { id: "BBA", name: "BBA", longName: "BBA", longName_alt: "Bachelor of Business Administration", semesters: 8, subjects: 38 },
   { id: "BHM", name: "BHM", longName: "Bachelor of Hotel Management", semesters: 8, subjects: 35 },
 ];
 
@@ -112,10 +112,9 @@ const DEFAULT_NETWORK_SETTINGS: NetworkSettings = {
   ipRangeEnd: "192.168.1.255"
 };
 
-// --- STORAGE UTILS ---
 const isClient = typeof window !== 'undefined';
 
-export const getStoredUsers = (): User[] => {
+export function getStoredUsers(): User[] {
   if (!isClient) return DEFAULT_USERS;
   const stored = localStorage.getItem('eduscan_users');
   if (!stored) {
@@ -123,16 +122,16 @@ export const getStoredUsers = (): User[] => {
     return DEFAULT_USERS;
   }
   try { return JSON.parse(stored); } catch (e) { return DEFAULT_USERS; }
-};
+}
 
-export const saveUsers = (users: User[]) => {
+export function saveUsers(users: User[]) {
   if (isClient) {
     localStorage.setItem('eduscan_users', JSON.stringify(users));
     window.dispatchEvent(new Event('storage'));
   }
-};
+}
 
-export const getStoredFaculties = (): Faculty[] => {
+export function getStoredFaculties(): Faculty[] {
   if (!isClient) return DEFAULT_FACULTIES;
   const stored = localStorage.getItem('eduscan_faculties');
   if (!stored) {
@@ -140,16 +139,16 @@ export const getStoredFaculties = (): Faculty[] => {
     return DEFAULT_FACULTIES;
   }
   try { return JSON.parse(stored); } catch (e) { return DEFAULT_FACULTIES; }
-};
+}
 
-export const saveFaculties = (faculties: Faculty[]) => {
+export function saveFaculties(faculties: Faculty[]) {
   if (isClient) {
     localStorage.setItem('eduscan_faculties', JSON.stringify(faculties));
     window.dispatchEvent(new Event('storage'));
   }
-};
+}
 
-export const getStoredSubjects = (): Subject[] => {
+export function getStoredSubjects(): Subject[] {
   if (!isClient) return DEFAULT_SUBJECTS;
   const stored = localStorage.getItem('eduscan_subjects');
   if (!stored) {
@@ -157,28 +156,28 @@ export const getStoredSubjects = (): Subject[] => {
     return DEFAULT_SUBJECTS;
   }
   try { return JSON.parse(stored); } catch (e) { return DEFAULT_SUBJECTS; }
-};
+}
 
-export const saveSubjects = (subjects: Subject[]) => {
+export function saveSubjects(subjects: Subject[]) {
   if (isClient) {
     localStorage.setItem('eduscan_subjects', JSON.stringify(subjects));
     window.dispatchEvent(new Event('storage'));
   }
-};
+}
 
-export const getCollegeLogo = (): string => {
+export function getCollegeLogo(): string {
   if (!isClient) return DEFAULT_LOGO;
   return localStorage.getItem('eduscan_college_logo') || DEFAULT_LOGO;
-};
+}
 
-export const setCollegeLogo = (url: string) => {
+export function setCollegeLogo(url: string) {
   if (isClient) {
     localStorage.setItem('eduscan_college_logo', url);
     window.dispatchEvent(new Event('storage'));
   }
-};
+}
 
-export const getNetworkSettings = (): NetworkSettings => {
+export function getNetworkSettings(): NetworkSettings {
   if (!isClient) return DEFAULT_NETWORK_SETTINGS;
   const stored = localStorage.getItem('eduscan_network_settings');
   try {
@@ -186,16 +185,16 @@ export const getNetworkSettings = (): NetworkSettings => {
   } catch (e) {
     return DEFAULT_NETWORK_SETTINGS;
   }
-};
+}
 
-export const saveNetworkSettings = (settings: NetworkSettings) => {
+export function saveNetworkSettings(settings: NetworkSettings) {
   if (isClient) {
     localStorage.setItem('eduscan_network_settings', JSON.stringify(settings));
     window.dispatchEvent(new Event('storage'));
   }
-};
+}
 
-export const getAttendanceRecords = (): AttendanceRecord[] => {
+export function getAttendanceRecords(): AttendanceRecord[] {
   if (!isClient) return [];
   const stored = localStorage.getItem('eduscan_attendance_records');
   try {
@@ -203,16 +202,16 @@ export const getAttendanceRecords = (): AttendanceRecord[] => {
   } catch (e) {
     return [];
   }
-};
+}
 
-export const saveAttendanceRecords = (records: AttendanceRecord[]) => {
+export function saveAttendanceRecords(records: AttendanceRecord[]) {
   if (isClient) {
     localStorage.setItem('eduscan_attendance_records', JSON.stringify(records));
     window.dispatchEvent(new Event('storage'));
   }
-};
+}
 
-export const markManualAttendance = (records: Omit<AttendanceRecord, 'id'>[]) => {
+export function markManualAttendance(records: Omit<AttendanceRecord, 'id'>[]) {
   const currentRecords = getAttendanceRecords();
   const newRecordsWithIds = records.map(r => ({ ...r, id: Math.random().toString(36).substr(2, 9) }));
   const updatedRecords = [...currentRecords, ...newRecordsWithIds];
@@ -231,16 +230,16 @@ export const markManualAttendance = (records: Omit<AttendanceRecord, 'id'>[]) =>
     }
   });
   saveUsers(users);
-};
+}
 
-export const recordScanAttendance = (data: {
+export function recordScanAttendance(data: {
   studentId: string;
   studentName: string;
   subjectId: string;
   subjectName: string;
   faculty: string;
   semester: number;
-}) => {
+}) {
   const records = getAttendanceRecords();
   const today = new Date().toISOString().split('T')[0];
   
@@ -279,7 +278,6 @@ export const recordScanAttendance = (data: {
     users[userIdx].attendanceRate = Math.round((presentCount / (totalCount || 1)) * 100);
     saveUsers(users);
     
-    // Update local session if it's the current user
     const session = localStorage.getItem('user_session');
     if (session) {
       const parsedSession = JSON.parse(session);
@@ -290,10 +288,9 @@ export const recordScanAttendance = (data: {
   }
 
   return true;
-};
+}
 
-// --- AUTH SESSION ---
-export const login = (userId: string, passwordInput: string, role: UserRole): User | null => {
+export function login(userId: string, passwordInput: string, role: UserRole): User | null {
   const users = getStoredUsers();
   const cleanId = userId.trim().toLowerCase();
   const cleanPw = passwordInput.trim(); 
@@ -311,21 +308,21 @@ export const login = (userId: string, passwordInput: string, role: UserRole): Us
     return user;
   }
   return null;
-};
+}
 
-export const getCurrentUser = (): User | null => {
+export function getCurrentUser(): User | null {
   if (!isClient) return null;
   const session = localStorage.getItem('user_session');
   return session ? JSON.parse(session) : null;
-};
+}
 
-export const logout = () => {
+export function logout() {
   if (isClient) {
     localStorage.removeItem('user_session');
   }
-};
+}
 
-export const updateUserProfile = (updatedData: Partial<User>): User | null => {
+export function updateUserProfile(updatedData: Partial<User>): User | null {
   const currentUser = getCurrentUser();
   if (!currentUser) return null;
 
@@ -340,4 +337,4 @@ export const updateUserProfile = (updatedData: Partial<User>): User | null => {
     return updatedUser;
   }
   return null;
-};
+}

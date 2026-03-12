@@ -43,14 +43,14 @@ export default function LoginPage() {
     if (user) {
       toast({
         title: "Access Granted",
-        description: `Welcome back, ${user.name}.`,
+        description: `Welcome to the ${role} Dashboard, ${user.name}.`,
       });
       router.push("/dashboard");
     } else {
       toast({
         variant: "destructive",
         title: "Authentication Failed",
-        description: `Invalid ID or Password for the ${role} portal.`,
+        description: `Invalid Portal ID or Password for the ${role} portal.`,
       });
     }
     setLoading(false);
@@ -75,7 +75,7 @@ export default function LoginPage() {
         <Card className="border-none shadow-2xl bg-white/90 backdrop-blur-md overflow-hidden">
           <CardHeader className="pb-0">
             <CardTitle className="text-xl font-bold">Secure Sign In</CardTitle>
-            <CardDescription>Select your role and enter credentials</CardDescription>
+            <CardDescription>Select your portal and enter credentials</CardDescription>
           </CardHeader>
           
           <form onSubmit={handleLogin}>
@@ -99,12 +99,12 @@ export default function LoginPage() {
 
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="userId">{role} ID</Label>
+                  <Label htmlFor="userId">Portal Login ID</Label>
                   <div className="relative">
                     <UserIcon className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input
                       id="userId"
-                      placeholder={`Enter your ${role.toLowerCase()} ID`}
+                      placeholder={`Enter ${role.toLowerCase()} ID`}
                       className="pl-10 h-11 bg-white border-muted focus:ring-primary"
                       value={userId}
                       onChange={(e) => setUserId(e.target.value)}
@@ -135,12 +135,12 @@ export default function LoginPage() {
               <div className="p-4 bg-primary/5 rounded-xl border border-primary/10">
                 <div className="flex items-center gap-2 mb-2">
                   <Info className="w-4 h-4 text-primary" />
-                  <p className="font-bold text-primary text-[10px] uppercase tracking-widest">Authentication Tips</p>
+                  <p className="font-bold text-primary text-[10px] uppercase tracking-widest">Login Help</p>
                 </div>
                 <ul className="text-[11px] text-muted-foreground space-y-1 ml-1">
-                  <li>• Ensure the <strong>Role</strong> tab matches your account type.</li>
-                  <li>• User IDs are case-insensitive (e.g. 'alice' = 'Alice').</li>
-                  <li>• Passwords are <strong>case-sensitive</strong>.</li>
+                  <li>• IDs are case-insensitive.</li>
+                  <li>• Passwords are case-sensitive.</li>
+                  <li>• Ensure the correct <strong>Role Tab</strong> is active.</li>
                 </ul>
               </div>
             </CardContent>
@@ -154,11 +154,11 @@ export default function LoginPage() {
                 {loading ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Verifying {role} Access...
+                    Authenticating...
                   </>
                 ) : (
                   <>
-                    Sign In to {role} Panel
+                    Sign In to Portal
                     <ArrowRight className="w-4 h-4 ml-2" />
                   </>
                 )}

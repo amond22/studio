@@ -57,8 +57,8 @@ export default function StudentScannerPage() {
         (decodedText) => {
           handleScanSuccess(decodedText);
         },
-        (errorMessage) => {
-          // Scanning... no error feedback needed for frame misses
+        () => {
+          // Scanning...
         }
       );
       setScanning(true);
@@ -87,7 +87,7 @@ export default function StudentScannerPage() {
     if (loading || !scanning) return;
     
     setLoading(true);
-    setScanning(false); // Stop processing more frames immediately
+    setScanning(false); 
     
     try {
       const qrData = JSON.parse(decodedText);
@@ -111,11 +111,10 @@ export default function StudentScannerPage() {
         setScanResult(qrData);
         toast({
           title: "Attendance Verified",
-          description: `Checked in for ${qrData.subject} at ${new Date().toLocaleTimeString()}.`,
+          description: `Checked in for ${qrData.subject} successfully.`,
         });
         await stopScanner();
       } else {
-        // Resume scanning if it was just a duplicate or failed record
         toast({
           variant: "destructive",
           title: "Duplicate Scan",
@@ -128,7 +127,7 @@ export default function StudentScannerPage() {
       toast({
         variant: "destructive",
         title: "Incompatible QR Code",
-        description: "Please scan a valid EduScan session code from your teacher.",
+        description: "Please scan a valid session QR from your teacher.",
       });
       setScanning(true);
     } finally {
@@ -150,7 +149,7 @@ export default function StudentScannerPage() {
           </div>
           <div>
             <h1 className="text-3xl font-headline font-bold text-primary">Live Scan</h1>
-            <p className="text-muted-foreground text-sm">Real-time attendance capture</p>
+            <p className="text-muted-foreground text-sm">Align QR with camera view</p>
           </div>
         </div>
         <Button 
@@ -160,7 +159,7 @@ export default function StudentScannerPage() {
           className="text-[10px] uppercase font-bold tracking-widest h-8"
         >
           {wifiBypass ? <ShieldOff className="w-3 h-3 mr-1" /> : <Wifi className="w-3 h-3 mr-1" />}
-          Network Check: {wifiBypass ? "OFF" : "ON"}
+          Net Check: {wifiBypass ? "OFF" : "ON"}
         </Button>
       </div>
 
@@ -183,15 +182,15 @@ export default function StudentScannerPage() {
                         <span className="flex h-2 w-2 rounded-full bg-red-500 animate-pulse" />
                       )}
                     </CardTitle>
-                    <CardDescription>Align QR code within the target box</CardDescription>
+                    <CardDescription>Target the center box</CardDescription>
                   </div>
                 </div>
               </CardHeader>
               
-              <CardContent className="p-0 min-h-[500px] flex items-center justify-center relative">
+              <CardContent className="p-0 min-h-[500px] flex items-center justify-center relative bg-black">
                 <div 
                   id="reader" 
-                  className="w-full h-full min-h-[500px] [&_video]:object-cover [&_video]:h-[500px] [&_video]:w-full"
+                  className="w-full h-full min-h-[500px] [&_video]:object-cover [&_video]:h-[500px] [&_video]:w-full overflow-hidden"
                 ></div>
                 
                 {hasCameraPermission === false && !loading && (
@@ -200,7 +199,7 @@ export default function StudentScannerPage() {
                       <Camera className="h-4 w-4" />
                       <AlertTitle>Camera Access Required</AlertTitle>
                       <AlertDescription className="space-y-4">
-                        <p>We need your camera to verify your attendance. Please check your browser permissions.</p>
+                        <p>Please check your browser permissions to use the scanner.</p>
                         <Button onClick={startScanner} variant="outline" className="w-full">
                           Try Again
                         </Button>
@@ -212,25 +211,23 @@ export default function StudentScannerPage() {
                 {loading && (
                   <div className="absolute inset-0 bg-black/70 z-50 flex flex-col items-center justify-center text-white backdrop-blur-sm">
                     <RefreshCw className="w-12 h-12 text-primary animate-spin mb-4" />
-                    <p className="font-bold tracking-widest uppercase text-xs">Connecting Camera...</p>
+                    <p className="font-bold tracking-widest uppercase text-xs text-primary">Initializing...</p>
                   </div>
                 )}
 
-                {/* Scanning Interface Overlays */}
+                {/* Single Professional Overlay */}
                 <div className="absolute inset-0 pointer-events-none z-10 flex items-center justify-center">
-                  <div className="w-72 h-72 border-2 border-white/20 rounded-3xl relative">
-                    {/* Corner Borders */}
+                  <div className="w-72 h-72 border-2 border-white/20 rounded-3xl relative shadow-[0_0_0_9999px_rgba(0,0,0,0.4)]">
                     <div className="absolute top-0 left-0 w-10 h-10 border-t-4 border-l-4 border-primary rounded-tl-2xl -translate-x-1 -translate-y-1"></div>
                     <div className="absolute top-0 right-0 w-10 h-10 border-t-4 border-r-4 border-primary rounded-tr-2xl translate-x-1 -translate-y-1"></div>
                     <div className="absolute bottom-0 left-0 w-10 h-10 border-b-4 border-l-4 border-primary rounded-bl-2xl -translate-x-1 translate-y-1"></div>
                     <div className="absolute bottom-0 right-0 w-10 h-10 border-b-4 border-r-4 border-primary rounded-br-2xl translate-x-1 translate-y-1"></div>
                     
-                    {/* Laser Line Animation */}
                     {scanning && (
                       <motion.div 
                         animate={{ top: ["5%", "95%", "5%"] }} 
-                        transition={{ duration: 2.5, repeat: Infinity, ease: "linear" }}
-                        className="absolute left-2 right-2 h-0.5 bg-primary/80 shadow-[0_0_20px_rgba(46,92,184,1)] z-20"
+                        transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                        className="absolute left-2 right-2 h-0.5 bg-primary/60 shadow-[0_0_15px_rgba(46,92,184,0.8)] z-20"
                       />
                     )}
                   </div>
@@ -276,13 +273,13 @@ export default function StudentScannerPage() {
                   <p className="font-bold text-sm">{scanResult.semester}</p>
                 </div>
                 <div className="space-y-1 pt-4 border-t border-muted col-span-2">
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold text-center">Reference ID</p>
-                  <p className="font-mono text-[10px] text-center text-primary truncate">{scanResult.id}</p>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold text-center">Audit Reference</p>
+                  <p className="font-mono text-[10px] text-center text-primary truncate uppercase">{scanResult.id}</p>
                 </div>
               </div>
 
               <Button className="w-full button-hover h-16 rounded-2xl font-bold text-xl shadow-xl shadow-primary/20" onClick={resetScanner}>
-                Scan Another Class
+                Scan Next Class
               </Button>
             </div>
           </motion.div>
@@ -294,9 +291,9 @@ export default function StudentScannerPage() {
           <AlertCircle className="w-6 h-6 text-primary" />
         </div>
         <div className="text-sm">
-          <p className="font-bold text-primary mb-1 text-base">Direct Sync Active</p>
+          <p className="font-bold text-primary mb-1 text-base">Automatic Sync</p>
           <p className="text-muted-foreground leading-relaxed">
-            Your attendance record is instantly transmitted to the college database. Ensure you see the <strong>"Verified!"</strong> screen before leaving the scanning area.
+            Attendance is instantly recorded and synced with the college database. Keep scanning until you see the verification message.
           </p>
         </div>
       </div>

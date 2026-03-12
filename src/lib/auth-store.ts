@@ -15,21 +15,21 @@ export interface User {
 
 const mockUsers: User[] = [
   {
-    id: "A001",
-    name: "Admin Principal",
+    id: "admin",
+    name: "System Administrator",
     role: "Admin",
     email: "admin@balmiki.edu",
     photo: "https://picsum.photos/seed/admin/150/150"
   },
   {
-    id: "T101",
+    id: "teacher",
     name: "Dr. Robert Smith",
     role: "Teacher",
     email: "robert@balmiki.edu",
     photo: "https://picsum.photos/seed/teacher/150/150"
   },
   {
-    id: "S202",
+    id: "student",
     name: "Alice Johnson",
     role: "Student",
     email: "alice@balmiki.edu",
@@ -40,7 +40,8 @@ const mockUsers: User[] = [
 ];
 
 export const login = (userId: string, role: UserRole): User | null => {
-  const user = mockUsers.find(u => u.id === userId && u.role === role);
+  // Case-insensitive ID check for demo purposes
+  const user = mockUsers.find(u => u.id.toLowerCase() === userId.toLowerCase() && u.role === role);
   if (user) {
     if (typeof window !== 'undefined') {
       localStorage.setItem('user_session', JSON.stringify(user));

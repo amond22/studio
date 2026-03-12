@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { UserRole, login } from "@/lib/auth-store";
 import { useToast } from "@/hooks/use-toast";
-import { KeyRound, User as UserIcon, Building2 } from "lucide-react";
+import { KeyRound, User as UserIcon, Building2, Info } from "lucide-react";
 
 export default function LoginPage() {
   const [role, setRole] = useState<UserRole>("Student");
@@ -40,7 +40,7 @@ export default function LoginPage() {
       toast({
         variant: "destructive",
         title: "Login Failed",
-        description: "Please check your credentials and role.",
+        description: "Please check your User ID and Role. IDs are: admin, teacher, or student.",
       });
     }
     setLoading(false);
@@ -89,7 +89,7 @@ export default function LoginPage() {
                   <UserIcon className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="userId"
-                    placeholder="e.g. S202 or T101"
+                    placeholder="e.g. admin, teacher, student"
                     className="pl-10 bg-white"
                     value={userId}
                     onChange={(e) => setUserId(e.target.value)}
@@ -105,7 +105,7 @@ export default function LoginPage() {
                   <Input
                     id="password"
                     type="password"
-                    placeholder="••••••••"
+                    placeholder="any password"
                     className="pl-10 bg-white"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -114,14 +114,17 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              <div className="flex items-center justify-end">
-                <button
-                  type="button"
-                  className="text-sm font-medium text-primary hover:underline"
-                  onClick={() => toast({ title: "Forgot Password?", description: "Please contact the admin office." })}
-                >
-                  Forgot password?
-                </button>
+              <div className="p-3 bg-accent/5 rounded-lg border border-accent/20 flex gap-3 items-start">
+                <Info className="w-4 h-4 text-accent mt-0.5 shrink-0" />
+                <div className="text-[10px] text-muted-foreground leading-tight">
+                  <p className="font-bold text-accent mb-1 uppercase tracking-wider">Demo Credentials:</p>
+                  <ul className="list-disc pl-3 space-y-0.5">
+                    <li><strong>Admin:</strong> ID: <code className="bg-accent/10 px-1 rounded">admin</code></li>
+                    <li><strong>Teacher:</strong> ID: <code className="bg-accent/10 px-1 rounded">teacher</code></li>
+                    <li><strong>Student:</strong> ID: <code className="bg-accent/10 px-1 rounded">student</code></li>
+                    <li><strong>Password:</strong> Any value</li>
+                  </ul>
+                </div>
               </div>
             </CardContent>
             <CardFooter>

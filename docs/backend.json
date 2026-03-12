@@ -1,0 +1,64 @@
+
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "Information about students, teachers, and admins.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "role": { "type": "string", "enum": ["Admin", "Teacher", "Student"] },
+        "faculty": { "type": "string" },
+        "semester": { "type": "number" },
+        "photo": { "type": "string" }
+      },
+      "required": ["id", "name", "role", "email"]
+    },
+    "AttendanceRecord": {
+      "title": "Attendance Record",
+      "description": "A log of a student's attendance for a specific subject session.",
+      "type": "object",
+      "properties": {
+        "studentId": { "type": "string" },
+        "studentName": { "type": "string" },
+        "subjectId": { "type": "string" },
+        "subjectName": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["Present", "Late"] },
+        "networkVerified": { "type": "boolean" }
+      },
+      "required": ["studentId", "subjectId", "date", "status"]
+    },
+    "Faculty": {
+      "title": "Faculty",
+      "description": "Academic department or program.",
+      "type": "object",
+      "properties": {
+        "code": { "type": "string" },
+        "name": { "type": "string" },
+        "totalSemesters": { "type": "number" }
+      },
+      "required": ["code", "name"]
+    }
+  },
+  "auth": {
+    "providers": ["password"]
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Storage for all user types."
+    },
+    "/faculties/{facultyId}": {
+      "schema": "Faculty",
+      "description": "Academic faculties list."
+    },
+    "/attendance/{recordId}": {
+      "schema": "AttendanceRecord",
+      "description": "Central log of all attendance scans."
+    }
+  }
+}

@@ -1,8 +1,8 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
-import { Users, Plus, Mail, Shield, UserPlus, GraduationCap, Search, FileBarChart, Filter, ChevronRight, Eye, MapPin, Hash, BarChart3, Edit, Save, X, KeyRound } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Users, Plus, Mail, Shield, UserPlus, GraduationCap, Search, FileBarChart, Filter, ChevronRight, Eye, MapPin, Hash, BarChart3, Edit, Save, X, KeyRound, Upload, Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -29,6 +29,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { User, getStoredUsers, saveUsers, UserRole } from "@/lib/auth-store";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 export default function UsersManagementPage() {
   const [users, setUsers] = useState<User[]>([]);
@@ -37,6 +38,7 @@ export default function UsersManagementPage() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Form State for Add/Edit
   const [isEditMode, setIsEditMode] = useState(false);
@@ -50,6 +52,7 @@ export default function UsersManagementPage() {
   const [newPassword, setNewPassword] = useState("");
   const [newLcNo, setNewLcNo] = useState("");
   const [newAddress, setNewAddress] = useState("");
+  const [newPhoto, setNewPhoto] = useState("");
 
   const { toast } = useToast();
 
@@ -69,6 +72,7 @@ export default function UsersManagementPage() {
     setNewPassword("");
     setNewLcNo("");
     setNewAddress("");
+    setNewPhoto("");
   };
 
   const handleOpenAdd = () => {
@@ -88,7 +92,28 @@ export default function UsersManagementPage() {
     setNewPassword(user.password || "");
     setNewLcNo(user.lcNo || "");
     setNewAddress(user.address || "");
+    setNewPhoto(user.photo || "");
     setOpen(true);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        toast({
+          variant: "destructive",
+          title: "File too large",
+          description: "Please select an image smaller than 2MB."
+        });
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setNewPhoto(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleSaveUser = () => {
@@ -97,7 +122,6 @@ export default function UsersManagementPage() {
       return;
     }
 
-    // Check if ID is unique when adding or changing ID
     if (!isEditMode || (isEditMode && newUserId.toLowerCase() !== originalId.toLowerCase())) {
       const exists = users.find(u => u.id.toLowerCase() === newUserId.toLowerCase());
       if (exists) {
@@ -105,6 +129,8 @@ export default function UsersManagementPage() {
         return;
       }
     }
+
+    const finalPhoto = newPhoto || `https://picsum.photos/seed/${newUserId}/150/150`;
 
     const updatedUser: User = {
       id: newUserId,
@@ -117,16 +143,16 @@ export default function UsersManagementPage() {
       lcNo: newRole === 'Student' ? newLcNo : undefined,
       address: newRole === 'Student' ? newAddress : undefined,
       attendanceRate: isEditMode ? (users.find(u => u.id === originalId)?.attendanceRate || 0) : 0,
-      photo: isEditMode ? (users.find(u => u.id === originalId)?.photo || `https://picsum.photos/seed/${newUserId}/150/150`) : `https://picsum.photos/seed/${newUserId}/150/150`
+      photo: finalPhoto
     };
 
     let updatedUsersList;
     if (isEditMode) {
       updatedUsersList = users.map(u => u.id === originalId ? updatedUser : u);
-      toast({ title: "Account Updated", description: `${newName}'s portal credentials have been updated.` });
+      toast({ title: "Account Updated", description: `${newName}'s credentials updated.` });
     } else {
       updatedUsersList = [...users, updatedUser];
-      toast({ title: "Account Created", description: `${newName} can now login to the ${newRole} portal.` });
+      toast({ title: "Account Created", description: `${newName} is now registered.` });
     }
 
     setUsers(updatedUsersList);
@@ -158,13 +184,35 @@ export default function UsersManagementPage() {
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogContent className="sm:max-w-lg">
             <DialogHeader>
-              <DialogTitle>{isEditMode ? "Edit Portal Credentials" : "Register Portal Account"}</DialogTitle>
+              <DialogTitle>{isEditMode ? "Edit Account" : "Register Account"}</DialogTitle>
               <DialogDescription>
-                Set the Login ID and Password for the user to access their dashboard.
+                Set the credentials and academic profile for the user.
               </DialogDescription>
             </DialogHeader>
             <ScrollArea className="max-h-[70vh] pr-4">
               <div className="space-y-6 py-4">
+                <div className="flex flex-col items-center gap-4">
+                  <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+                    <Avatar className="w-24 h-24 border-4 border-primary/10">
+                      <AvatarImage src={newPhoto || `https://picsum.photos/seed/${newUserId || 'new'}/150/150`} />
+                      <AvatarFallback className="bg-primary/5 text-primary">
+                        <Camera className="w-8 h-8" />
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Upload className="w-6 h-6 text-white" />
+                    </div>
+                  </div>
+                  <input 
+                    type="file" 
+                    ref={fileInputRef} 
+                    className="hidden" 
+                    accept="image/*" 
+                    onChange={handleFileChange} 
+                  />
+                  <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Click to upload photo</p>
+                </div>
+
                 <div className="p-4 bg-primary/5 border border-primary/10 rounded-xl space-y-4">
                   <p className="text-xs font-bold uppercase text-primary tracking-widest flex items-center gap-2">
                     <KeyRound className="w-3.5 h-3.5" /> Portal Credentials
@@ -173,12 +221,10 @@ export default function UsersManagementPage() {
                     <div className="space-y-2">
                       <Label>Portal Login ID</Label>
                       <Input placeholder="e.g., student01" value={newUserId} onChange={(e) => setNewUserId(e.target.value)} />
-                      <p className="text-[10px] text-muted-foreground">Unique identifier</p>
                     </div>
                     <div className="space-y-2">
                       <Label>Portal Password</Label>
-                      <Input type="text" placeholder="Set password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
-                      <p className="text-[10px] text-muted-foreground">Case-sensitive</p>
+                      <Input placeholder="Set password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
                     </div>
                   </div>
                   <div className="space-y-2">
@@ -244,12 +290,6 @@ export default function UsersManagementPage() {
                     <Label>Contact Email</Label>
                     <Input type="email" placeholder="john@balmiki.edu" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} />
                   </div>
-                  {newRole === 'Student' && (
-                    <div className="space-y-2">
-                      <Label>Resident Address</Label>
-                      <Input placeholder="City, Area, House No." value={newAddress} onChange={(e) => setNewAddress(e.target.value)} />
-                    </div>
-                  )}
                 </div>
               </div>
             </ScrollArea>
@@ -293,20 +333,19 @@ export default function UsersManagementPage() {
               <TableRow>
                 <TableHead>User Identity</TableHead>
                 <TableHead>Portal Role</TableHead>
-                <TableHead>Portal Login ID</TableHead>
-                <TableHead>Portal Password</TableHead>
+                <TableHead>Login ID</TableHead>
                 <TableHead className="text-right">Manage</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredUsers.map((user) => (
-                <TableRow 
-                  key={user.id} 
-                  className="group hover:bg-muted/30"
-                >
+                <TableRow key={user.id} className="group hover:bg-muted/30">
                   <TableCell>
                     <div className="flex items-center gap-3">
-                      <img src={user.photo} className="w-10 h-10 rounded-full border bg-white" alt="" />
+                      <Avatar className="w-10 h-10 border bg-white">
+                        <AvatarImage src={user.photo} />
+                        <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                      </Avatar>
                       <div>
                         <p className="font-bold text-sm">{user.name}</p>
                         <p className="text-[10px] text-muted-foreground">{user.email}</p>
@@ -320,9 +359,6 @@ export default function UsersManagementPage() {
                   </TableCell>
                   <TableCell className="font-mono text-xs uppercase text-primary font-bold">
                     {user.id}
-                  </TableCell>
-                  <TableCell className="font-mono text-xs text-muted-foreground">
-                    {user.password}
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
@@ -353,41 +389,38 @@ export default function UsersManagementPage() {
                 <DialogDescription>Full details for {selectedUser.name}</DialogDescription>
               </DialogHeader>
               <div className="flex flex-col items-center gap-6 py-4">
-                <div className="w-24 h-24 rounded-full border-4 border-primary/10 overflow-hidden shadow-lg">
-                  <img src={selectedUser.photo} alt={selectedUser.name} className="w-full h-full object-cover" />
-                </div>
+                <Avatar className="w-24 h-24 border-4 border-primary/10 shadow-lg">
+                  <AvatarImage src={selectedUser.photo} />
+                  <AvatarFallback>{selectedUser.name.charAt(0)}</AvatarFallback>
+                </Avatar>
                 <div className="w-full space-y-4">
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="p-3 bg-primary/5 border border-primary/10 rounded-xl">
-                      <p className="text-[10px] font-bold uppercase text-primary mb-1">Portal Login ID</p>
+                    <div className="p-3 bg-primary/5 border border-primary/10 rounded-xl text-center">
+                      <p className="text-[10px] font-bold uppercase text-primary mb-1">Login ID</p>
                       <p className="text-sm font-bold uppercase">{selectedUser.id}</p>
                     </div>
-                    <div className="p-3 bg-primary/5 border border-primary/10 rounded-xl">
-                      <p className="text-[10px] font-bold uppercase text-primary mb-1">Portal Password</p>
+                    <div className="p-3 bg-primary/5 border border-primary/10 rounded-xl text-center">
+                      <p className="text-[10px] font-bold uppercase text-primary mb-1">Password</p>
                       <p className="text-sm font-bold">{selectedUser.password}</p>
                     </div>
                   </div>
 
                   {selectedUser.role === 'Student' && (
                     <div className="space-y-2">
-                      <div className="p-3 bg-muted rounded-xl flex justify-between items-center">
-                        <span className="text-[10px] font-bold uppercase text-muted-foreground">Academic Track</span>
-                        <span className="text-xs font-bold">{selectedUser.faculty} (Semester {selectedUser.semester})</span>
+                      <div className="p-3 bg-muted rounded-xl flex justify-between items-center text-xs">
+                        <span className="font-bold text-muted-foreground uppercase">Faculty</span>
+                        <span className="font-bold">{selectedUser.faculty} (Sem {selectedUser.semester})</span>
                       </div>
-                      <div className="p-3 bg-muted rounded-xl flex justify-between items-center">
-                        <span className="text-[10px] font-bold uppercase text-muted-foreground">Class LC NO</span>
-                        <span className="text-xs font-bold">{selectedUser.lcNo || 'N/A'}</span>
-                      </div>
-                      <div className="p-3 bg-muted rounded-xl">
-                        <span className="text-[10px] font-bold uppercase text-muted-foreground block mb-1">Address</span>
-                        <span className="text-xs text-muted-foreground">{selectedUser.address || 'N/A'}</span>
+                      <div className="p-3 bg-muted rounded-xl flex justify-between items-center text-xs">
+                        <span className="font-bold text-muted-foreground uppercase">LC Number</span>
+                        <span className="font-bold">{selectedUser.lcNo || 'N/A'}</span>
                       </div>
                     </div>
                   )}
 
-                  <div className="p-3 bg-muted/50 rounded-xl">
-                    <p className="text-[10px] font-bold uppercase text-muted-foreground mb-1">Contact Email</p>
-                    <p className="text-sm">{selectedUser.email}</p>
+                  <div className="p-3 bg-muted/50 rounded-xl text-xs">
+                    <p className="font-bold text-muted-foreground uppercase mb-1">Contact Email</p>
+                    <p className="font-medium">{selectedUser.email}</p>
                   </div>
                 </div>
               </div>

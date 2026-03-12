@@ -1,8 +1,8 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
-import { Settings, Wifi, Globe, ShieldCheck, Save, Image as ImageIcon, RefreshCcw, Loader2 } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Settings, Wifi, Globe, ShieldCheck, Save, Image as ImageIcon, RefreshCcw, Loader2, Upload } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -15,12 +15,34 @@ export default function NetworkSettingsPage() {
   const [settings, setSettings] = useState<NetworkSettings | null>(null);
   const [logoUrl, setLogoUrl] = useState("");
   const [saving, setSaving] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   useEffect(() => {
     setLogoUrl(getCollegeLogo());
     setSettings(getNetworkSettings());
   }, []);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        toast({
+          variant: "destructive",
+          title: "File too large",
+          description: "Please select an image smaller than 2MB."
+        });
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result as string;
+        setLogoUrl(base64String);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleSaveNetworkSettings = () => {
     if (!settings) return;
@@ -37,7 +59,7 @@ export default function NetworkSettingsPage() {
 
   const handleSaveBranding = () => {
     if (!logoUrl) {
-      toast({ variant: "destructive", title: "Invalid URL", description: "Logo URL cannot be empty." });
+      toast({ variant: "destructive", title: "Invalid Logo", description: "Logo cannot be empty." });
       return;
     }
     setSaving(true);
@@ -75,31 +97,52 @@ export default function NetworkSettingsPage() {
             <ImageIcon className="w-5 h-5 text-primary" />
             <div>
               <CardTitle>College Branding</CardTitle>
-              <CardDescription>Update the institution logo displayed on all portals</CardDescription>
+              <CardDescription>Update the institution logo from a URL or local file</CardDescription>
             </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="flex flex-col md:flex-row items-center gap-6 p-4 bg-muted/30 rounded-2xl border">
-            <div className="w-24 h-24 rounded-full overflow-hidden bg-white border-4 border-white shadow-md shrink-0">
+          <div className="flex flex-col md:flex-row items-center gap-6 p-6 bg-muted/30 rounded-2xl border">
+            <div className="w-24 h-24 rounded-full overflow-hidden bg-white border-4 border-white shadow-md shrink-0 flex items-center justify-center">
               <img src={logoUrl} alt="College Logo Preview" className="w-full h-full object-cover" />
             </div>
             <div className="flex-1 space-y-4 w-full">
-              <div className="space-y-2">
-                <Label htmlFor="logo-url" className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Logo Image URL</Label>
-                <div className="flex gap-2">
-                  <Input 
-                    id="logo-url" 
-                    value={logoUrl} 
-                    onChange={(e) => setLogoUrl(e.target.value)}
-                    placeholder="https://example.com/logo.png"
-                    className="bg-white"
-                  />
-                  <Button variant="outline" size="icon" onClick={resetLogo} title="Reset to default">
-                    <RefreshCcw className="w-4 h-4" />
-                  </Button>
+              <div className="space-y-3">
+                <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Logo Source</Label>
+                
+                <div className="grid gap-3">
+                  <div className="flex gap-2">
+                    <Input 
+                      value={logoUrl.startsWith('data:') ? 'Custom local image uploaded' : logoUrl} 
+                      onChange={(e) => setLogoUrl(e.target.value)}
+                      placeholder="Paste Image URL"
+                      className="bg-white"
+                    />
+                    <Button variant="outline" size="icon" onClick={resetLogo} title="Reset to default">
+                      <RefreshCcw className="w-4 h-4" />
+                    </Button>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <input 
+                      type="file" 
+                      ref={fileInputRef} 
+                      className="hidden" 
+                      accept="image/*" 
+                      onChange={handleFileChange} 
+                    />
+                    <Button 
+                      variant="secondary" 
+                      className="w-full flex items-center gap-2"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <Upload className="w-4 h-4" />
+                      Upload From Computer
+                    </Button>
+                  </div>
                 </div>
-                <p className="text-[10px] text-muted-foreground italic">Changes will reflect instantly across all pages.</p>
+                
+                <p className="text-[10px] text-muted-foreground italic">Uploaded images are converted to local data and saved instantly.</p>
               </div>
               <Button className="w-full sm:w-auto" onClick={handleSaveBranding} disabled={saving}>
                 {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
@@ -185,3 +228,4 @@ export default function NetworkSettingsPage() {
     </div>
   );
 }
+

@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Users, Plus, Mail, Shield, MoreHorizontal, UserPlus, GraduationCap, Search, FileBarChart, Filter } from "lucide-react";
+import { Users, Plus, Mail, Shield, MoreHorizontal, UserPlus, GraduationCap, Search, FileBarChart, Filter, ChevronRight, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -20,7 +20,8 @@ import {
   DialogHeader, 
   DialogTitle, 
   DialogTrigger,
-  DialogFooter
+  DialogFooter,
+  DialogDescription
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,7 +32,10 @@ import { useToast } from "@/hooks/use-toast";
 export default function UsersManagementPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [open, setOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [roleFilter, setRoleFilter] = useState<string>("all");
   const [facultyFilter, setFacultyFilter] = useState<string>("all");
   const { toast } = useToast();
 
@@ -82,8 +86,9 @@ export default function UsersManagementPage() {
   const filteredUsers = users.filter(u => {
     const matchesSearch = u.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
                           u.id.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesRole = roleFilter === "all" || u.role === roleFilter;
     const matchesFaculty = facultyFilter === "all" || u.faculty === facultyFilter;
-    return matchesSearch && matchesFaculty;
+    return matchesSearch && matchesRole && matchesFaculty;
   });
 
   return (
@@ -177,7 +182,7 @@ export default function UsersManagementPage() {
         </Dialog>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-4">
+      <div className="flex flex-col lg:flex-row gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
           <Input 
@@ -187,13 +192,21 @@ export default function UsersManagementPage() {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-        <div className="w-full sm:w-48">
+        <div className="flex flex-wrap gap-2">
+          <Select value={roleFilter} onValueChange={setRoleFilter}>
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="All Roles" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Roles</SelectItem>
+              <SelectItem value="Admin">Admins</SelectItem>
+              <SelectItem value="Teacher">Teachers</SelectItem>
+              <SelectItem value="Student">Students</SelectItem>
+            </SelectContent>
+          </Select>
           <Select value={facultyFilter} onValueChange={setFacultyFilter}>
-            <SelectTrigger>
-              <div className="flex items-center gap-2">
-                <Filter className="w-4 h-4 text-muted-foreground" />
-                <SelectValue placeholder="All Faculties" />
-              </div>
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="All Faculties" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Faculties</SelectItem>
@@ -223,14 +236,21 @@ export default function UsersManagementPage() {
               </TableHeader>
               <TableBody>
                 {filteredUsers.length > 0 ? filteredUsers.map((user) => (
-                  <TableRow key={user.id}>
+                  <TableRow 
+                    key={user.id} 
+                    className="cursor-pointer group hover:bg-muted/50 transition-colors"
+                    onClick={() => {
+                      setSelectedUser(user);
+                      setDetailOpen(true);
+                    }}
+                  >
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-muted overflow-hidden shrink-0">
+                        <div className="w-8 h-8 rounded-full bg-muted overflow-hidden shrink-0 border border-primary/10">
                           <img src={user.photo} alt="" className="w-full h-full object-cover" />
                         </div>
                         <div>
-                          <p>{user.name}</p>
+                          <p className="group-hover:text-primary transition-colors">{user.name}</p>
                           <p className="text-[10px] text-muted-foreground font-mono uppercase">{user.id}</p>
                         </div>
                       </div>
@@ -261,8 +281,8 @@ export default function UsersManagementPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="icon">
-                        <FileBarChart className="w-4 h-4 text-primary" />
+                      <Button variant="ghost" size="icon" className="group-hover:bg-primary/10 transition-all">
+                        <ChevronRight className="w-4 h-4 text-primary" />
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -278,6 +298,60 @@ export default function UsersManagementPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Detail Dialog */}
+      <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
+        <DialogContent className="sm:max-w-md">
+          {selectedUser && (
+            <>
+              <DialogHeader>
+                <DialogTitle>User Profile Detail</DialogTitle>
+                <DialogDescription>
+                  Full system records for account ID: {selectedUser.id}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex flex-col items-center gap-6 py-4">
+                <div className="w-24 h-24 rounded-full border-4 border-primary/10 overflow-hidden shadow-lg">
+                  <img src={selectedUser.photo} alt={selectedUser.name} className="w-full h-full object-cover" />
+                </div>
+                <div className="text-center">
+                  <h3 className="text-2xl font-bold text-primary">{selectedUser.name}</h3>
+                  <Badge variant="outline" className="mt-1">{selectedUser.role}</Badge>
+                </div>
+                <div className="w-full grid grid-cols-2 gap-4">
+                  <div className="p-3 bg-muted rounded-xl">
+                    <p className="text-[10px] font-bold uppercase text-muted-foreground mb-1">Email</p>
+                    <p className="text-sm font-medium truncate">{selectedUser.email}</p>
+                  </div>
+                  <div className="p-3 bg-muted rounded-xl">
+                    <p className="text-[10px] font-bold uppercase text-muted-foreground mb-1">Account ID</p>
+                    <p className="text-sm font-medium font-mono uppercase">{selectedUser.id}</p>
+                  </div>
+                  {selectedUser.faculty && (
+                    <>
+                      <div className="p-3 bg-muted rounded-xl">
+                        <p className="text-[10px] font-bold uppercase text-muted-foreground mb-1">Faculty</p>
+                        <p className="text-sm font-medium">{selectedUser.faculty}</p>
+                      </div>
+                      <div className="p-3 bg-muted rounded-xl">
+                        <p className="text-[10px] font-bold uppercase text-muted-foreground mb-1">Semester</p>
+                        <p className="text-sm font-medium">{selectedUser.semester}</p>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+              <DialogFooter className="gap-2 sm:gap-0">
+                <Button variant="outline" className="w-full" onClick={() => setDetailOpen(false)}>Close</Button>
+                <Button className="w-full">
+                  <FileBarChart className="w-4 h-4 mr-2" />
+                  Attendance Audit
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

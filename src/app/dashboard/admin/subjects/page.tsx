@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { BookOpen, Plus, Search, Filter } from "lucide-react";
+import { BookOpen, Plus, Search, Filter, ChevronRight, Eye, MoreVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -29,6 +29,8 @@ interface Subject {
 export default function SubjectsManagementPage() {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [open, setOpen] = useState(false);
+  const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
   const { toast } = useToast();
 
   // Form
@@ -68,6 +70,11 @@ export default function SubjectsManagementPage() {
     setOpen(false);
     setCode("");
     setName("");
+  };
+
+  const handleSubjectClick = (sub: Subject) => {
+    setSelectedSubject(sub);
+    setDetailOpen(true);
   };
 
   return (
@@ -146,26 +153,75 @@ export default function SubjectsManagementPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {subjects.map((sub) => (
-          <Card key={sub.id} className="border-none shadow-sm hover:shadow-md transition-shadow">
+          <Card 
+            key={sub.id} 
+            className="border-none shadow-sm hover:shadow-lg transition-all cursor-pointer group active:scale-[0.98]"
+            onClick={() => handleSubjectClick(sub)}
+          >
             <CardHeader className="pb-2">
               <div className="flex justify-between items-start">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-primary bg-primary/10 px-2 py-0.5 rounded">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-primary bg-primary/10 px-2 py-0.5 rounded group-hover:bg-primary group-hover:text-white transition-colors">
                   {sub.code}
                 </span>
                 <span className="text-xs text-muted-foreground">{sub.faculty}</span>
               </div>
-              <CardTitle className="text-xl font-bold mt-2">{sub.name}</CardTitle>
+              <CardTitle className="text-xl font-bold mt-2 group-hover:text-primary transition-colors">{sub.name}</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground">Semester {sub.semester}</p>
               <div className="mt-4 pt-4 border-t flex justify-between items-center">
-                <Button variant="ghost" size="sm" className="text-xs h-8">View Records</Button>
+                <Button variant="ghost" size="sm" className="text-xs h-8 hover:bg-primary/5">
+                  <Eye className="w-3.5 h-3.5 mr-1.5" />
+                  View Records
+                </Button>
                 <Button variant="outline" size="sm" className="text-xs h-8">Edit</Button>
               </div>
             </CardContent>
           </Card>
         ))}
       </div>
+
+      {/* Subject Details Dialog */}
+      <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
+        <DialogContent>
+          {selectedSubject && (
+            <>
+              <DialogHeader>
+                <DialogTitle>{selectedSubject.name}</DialogTitle>
+                <p className="text-sm text-muted-foreground">{selectedSubject.code} &bull; {selectedSubject.faculty}</p>
+              </DialogHeader>
+              <div className="space-y-6 py-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-4 bg-muted rounded-xl text-center">
+                    <p className="text-[10px] font-bold uppercase text-muted-foreground mb-1">Total Classes</p>
+                    <p className="text-2xl font-bold">24</p>
+                  </div>
+                  <div className="p-4 bg-muted rounded-xl text-center">
+                    <p className="text-[10px] font-bold uppercase text-muted-foreground mb-1">Students</p>
+                    <p className="text-2xl font-bold">42</p>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <h4 className="text-sm font-bold">Recent Sessions</h4>
+                  {[
+                    { date: "Mar 15, 2024", count: 38 },
+                    { date: "Mar 12, 2024", count: 40 },
+                    { date: "Mar 08, 2024", count: 35 },
+                  ].map((s, i) => (
+                    <div key={i} className="flex items-center justify-between p-3 border rounded-lg">
+                      <span className="text-sm">{s.date}</span>
+                      <span className="text-sm font-bold text-primary">{s.count} Scans</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <DialogFooter>
+                <Button className="w-full" variant="outline" onClick={() => setDetailOpen(false)}>Close</Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

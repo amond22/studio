@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { GraduationCap, Plus, MoreVertical, Edit, Trash2, BookOpen } from "lucide-react";
+import { GraduationCap, Plus, MoreVertical, Edit, Trash2, BookOpen, ChevronRight, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
@@ -22,6 +22,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { useRouter } from "next/navigation";
 
 interface Faculty {
   id: string;
@@ -35,6 +36,7 @@ export default function FacultyManagementPage() {
   const [faculties, setFaculties] = useState<Faculty[]>([]);
   const [open, setOpen] = useState(false);
   const { toast } = useToast();
+  const router = useRouter();
 
   // Form
   const [code, setCode] = useState("");
@@ -71,6 +73,11 @@ export default function FacultyManagementPage() {
     setOpen(false);
     setCode("");
     setFullName("");
+  };
+
+  const handleFacultyClick = (facId: string) => {
+    toast({ title: "Loading Faculty", description: `Fetching records for ${facId}...` });
+    // In a real app, you might navigate or open a detailed view
   };
 
   return (
@@ -110,14 +117,18 @@ export default function FacultyManagementPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {faculties.map((fac) => (
-          <Card key={fac.id} className="border-none shadow-sm group">
+          <Card 
+            key={fac.id} 
+            className="border-none shadow-sm group cursor-pointer hover:shadow-lg transition-all active:scale-[0.98]"
+            onClick={() => handleFacultyClick(fac.id)}
+          >
             <CardHeader className="flex flex-row items-start justify-between">
               <div>
-                <CardTitle className="text-2xl font-bold text-primary">{fac.name}</CardTitle>
+                <CardTitle className="text-2xl font-bold text-primary group-hover:underline underline-offset-4">{fac.name}</CardTitle>
                 <p className="text-sm text-muted-foreground mt-1">{fac.longName}</p>
               </div>
               <DropdownMenu>
-                <DropdownMenuTrigger asChild>
+                <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                   <Button variant="ghost" size="icon" className="h-8 w-8">
                     <MoreVertical className="w-4 h-4" />
                   </Button>
@@ -134,18 +145,26 @@ export default function FacultyManagementPage() {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 gap-4">
-                <div className="p-3 bg-muted/50 rounded-lg">
+                <div className="p-3 bg-muted/50 rounded-lg group-hover:bg-primary/5 transition-colors">
                   <p className="text-[10px] uppercase font-bold text-muted-foreground mb-1">Semesters</p>
                   <p className="text-xl font-bold">{fac.semesters}</p>
                 </div>
-                <div className="p-3 bg-muted/50 rounded-lg">
+                <div className="p-3 bg-muted/50 rounded-lg group-hover:bg-primary/5 transition-colors">
                   <p className="text-[10px] uppercase font-bold text-muted-foreground mb-1">Subjects</p>
                   <p className="text-xl font-bold">{fac.subjects}</p>
                 </div>
               </div>
-              <Button variant="outline" className="w-full mt-4 group-hover:bg-primary group-hover:text-white transition-all">
+              <Button 
+                variant="outline" 
+                className="w-full mt-4 group-hover:bg-primary group-hover:text-white transition-all"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  router.push('/dashboard/admin/subjects');
+                }}
+              >
                 <BookOpen className="w-4 h-4 mr-2" />
                 Manage Subjects
+                <ChevronRight className="w-4 h-4 ml-auto" />
               </Button>
             </CardContent>
           </Card>

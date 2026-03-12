@@ -11,10 +11,25 @@ export interface User {
   password?: string;
   faculty?: string;
   semester?: number;
+  section?: string;
   photo: string;
   lcNo?: string;
   address?: string;
   attendanceRate?: number;
+}
+
+export interface AttendanceRecord {
+  id: string;
+  studentId: string;
+  studentName: string;
+  subjectId: string;
+  subjectName: string;
+  faculty: string;
+  semester: number;
+  section: string;
+  date: string;
+  status: 'Present' | 'Absent' | 'Late';
+  markedBy: string;
 }
 
 const DEFAULT_USERS: User[] = [
@@ -42,6 +57,7 @@ const DEFAULT_USERS: User[] = [
     password: "student-password",
     faculty: "BIT",
     semester: 4,
+    section: "A",
     photo: "https://picsum.photos/seed/student/150/150",
     lcNo: "LC-2024-001",
     address: "Bharatpur-10, Chitwan",
@@ -49,10 +65,6 @@ const DEFAULT_USERS: User[] = [
   }
 ];
 
-/**
- * Retrieves the current list of users from localStorage.
- * Always initializes with DEFAULT_USERS if empty.
- */
 export const getStoredUsers = (): User[] => {
   if (typeof window === 'undefined') return DEFAULT_USERS;
   
@@ -66,29 +78,51 @@ export const getStoredUsers = (): User[] => {
     const parsed = JSON.parse(stored);
     return Array.isArray(parsed) ? parsed : DEFAULT_USERS;
   } catch (e) {
-    console.error("Failed to parse stored users:", e);
     return DEFAULT_USERS;
   }
 };
 
-/**
- * Saves a new user list to localStorage.
- */
 export const saveUsers = (users: User[]) => {
   if (typeof window !== 'undefined') {
     localStorage.setItem('eduscan_users', JSON.stringify(users));
-    // Dispatch a storage event to notify other tabs/components
     window.dispatchEvent(new Event('storage'));
   }
 };
 
-/**
- * Authenticates a user based on ID, Role, and Password.
- */
-export const login = (userId: string, role: UserRole, passwordInput: string): User | null => {
-  // Always fetch fresh users from storage to ensure newly created ones are included
+export const getAttendanceRecords = (): AttendanceRecord[] => {
+  if (typeof window === 'undefined') return [];
+  const stored = localStorage.getItem('eduscan_attendance_records');
+  return stored ? JSON.parse(stored) : [];
+};
+
+export const saveAttendanceRecords = (records: AttendanceRecord[]) => {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('eduscan_attendance_records', JSON.stringify(records));
+  }
+};
+
+export const markManualAttendance = (records: Omit<AttendanceRecord, 'id'>[]) => {
+  const currentRecords = getAttendanceRecords();
+  const newRecordsWithIds = records.map(r => ({ ...r, id: Math.random().toString(36).substr(2, 9) }));
+  const updatedRecords = [...currentRecords, ...newRecordsWithIds];
+  saveAttendanceRecords(updatedRecords);
+
+  // Update user attendance rates (simulated calculation)
   const users = getStoredUsers();
-  
+  newRecordsWithIds.forEach(rec => {
+    const userIdx = users.findIndex(u => u.id === rec.studentId);
+    if (userIdx !== -1) {
+      const studentRecords = updatedRecords.filter(r => r.studentId === rec.studentId);
+      const presentCount = studentRecords.filter(r => r.status === 'Present' || r.status === 'Late').length;
+      const totalCount = studentRecords.length;
+      users[userIdx].attendanceRate = Math.round((presentCount / totalCount) * 100);
+    }
+  });
+  saveUsers(users);
+};
+
+export const login = (userId: string, role: UserRole, passwordInput: string): User | null => {
+  const users = getStoredUsers();
   const cleanId = userId.trim().toLowerCase();
   const cleanPass = passwordInput.trim();
   
@@ -104,7 +138,6 @@ export const login = (userId: string, role: UserRole, passwordInput: string): Us
     }
     return user;
   }
-  
   return null;
 };
 
@@ -130,10 +163,8 @@ export const updateUserProfile = (updatedData: Partial<User>): User | null => {
   if (userIndex !== -1) {
     const updatedUser = { ...users[userIndex], ...updatedData };
     users[userIndex] = updatedUser;
-    
     saveUsers(users);
     localStorage.setItem('user_session', JSON.stringify(updatedUser));
-    
     return updatedUser;
   }
   return null;

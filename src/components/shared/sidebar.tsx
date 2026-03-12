@@ -2,7 +2,6 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { motion } from "framer-motion";
 import { 
   LayoutDashboard, 
   Users, 
@@ -14,7 +13,8 @@ import {
   FileText,
   GraduationCap,
   Calendar,
-  Sparkles
+  Sparkles,
+  ClipboardCheck
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { User, logout } from "@/lib/auth-store";
@@ -45,6 +45,7 @@ export function AppSidebar({ user }: SidebarProps) {
     Teacher: [
       { icon: LayoutDashboard, label: "My Classes", href: "/dashboard" },
       { icon: QrCode, label: "Generate QR", href: "/dashboard/teacher/qr" },
+      { icon: ClipboardCheck, label: "Manual Attendance", href: "/dashboard/teacher/manual-attendance" },
       { icon: Sparkles, label: "AI Insights", href: "/dashboard/teacher/insights" },
       { icon: FileText, label: "Reports", href: "/dashboard/teacher/reports" },
     ],
@@ -55,7 +56,7 @@ export function AppSidebar({ user }: SidebarProps) {
     ]
   };
 
-  const currentMenu = menuItems[user.role];
+  const currentMenu = menuItems[user.role] || [];
 
   return (
     <div className="flex flex-col h-full bg-white border-r shadow-sm w-64">
@@ -73,7 +74,7 @@ export function AppSidebar({ user }: SidebarProps) {
               key={item.href}
               onClick={() => router.push(item.href)}
               className={cn(
-                "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all group",
+                "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all group text-left",
                 pathname === item.href 
                   ? "bg-primary text-primary-foreground" 
                   : "text-muted-foreground hover:bg-muted hover:text-foreground"

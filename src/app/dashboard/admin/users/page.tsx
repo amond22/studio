@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Users, Plus, Mail, Shield, MoreHorizontal, UserPlus } from "lucide-react";
+import { Users, Plus, Mail, Shield, MoreHorizontal, UserPlus, GraduationCap, Search, FileBarChart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -31,6 +31,7 @@ import { useToast } from "@/hooks/use-toast";
 export default function UsersManagementPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [open, setOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
 
   // Form State
@@ -38,6 +39,8 @@ export default function UsersManagementPage() {
   const [newName, setNewName] = useState("");
   const [newEmail, setNewEmail] = useState("");
   const [newRole, setNewRole] = useState<UserRole>("Student");
+  const [newFaculty, setNewFaculty] = useState("BIT");
+  const [newSemester, setNewSemester] = useState("1");
   const [newPassword, setNewPassword] = useState("");
 
   useEffect(() => {
@@ -56,6 +59,8 @@ export default function UsersManagementPage() {
       email: newEmail,
       role: newRole,
       password: newPassword,
+      faculty: newRole === 'Student' ? newFaculty : undefined,
+      semester: newRole === 'Student' ? parseInt(newSemester) : undefined,
       photo: `https://picsum.photos/seed/${newUserId}/150/150`
     };
 
@@ -72,6 +77,11 @@ export default function UsersManagementPage() {
     setNewEmail("");
     setNewPassword("");
   };
+
+  const filteredUsers = users.filter(u => 
+    u.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    u.id.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <div className="space-y-8">
@@ -112,6 +122,38 @@ export default function UsersManagementPage() {
                   </Select>
                 </div>
               </div>
+
+              {newRole === 'Student' && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Faculty</Label>
+                    <Select value={newFaculty} onValueChange={setNewFaculty}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="BIT">BIT</SelectItem>
+                        <SelectItem value="BBA">BBA</SelectItem>
+                        <SelectItem value="BHM">BHM</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Semester</Label>
+                    <Select value={newSemester} onValueChange={setNewSemester}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[1,2,3,4,5,6,7,8].map(s => (
+                          <SelectItem key={s} value={s.toString()}>Sem {s}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
+
               <div className="space-y-2">
                 <Label>Full Name</Label>
                 <Input placeholder="John Doe" value={newName} onChange={(e) => setNewName(e.target.value)} />
@@ -132,6 +174,16 @@ export default function UsersManagementPage() {
         </Dialog>
       </div>
 
+      <div className="relative">
+        <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+        <Input 
+          placeholder="Search by name or ID..." 
+          className="pl-10" 
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+      </div>
+
       <Card className="border-none shadow-sm overflow-hidden">
         <CardHeader>
           <CardTitle>All Registered Users</CardTitle>
@@ -141,21 +193,25 @@ export default function UsersManagementPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
+                  <TableHead>Name & ID</TableHead>
                   <TableHead>Email</TableHead>
+                  <TableHead>Academic Info</TableHead>
                   <TableHead>Role</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {users.map((user) => (
+                {filteredUsers.map((user) => (
                   <TableRow key={user.id}>
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-muted overflow-hidden shrink-0">
                           <img src={user.photo} alt="" className="w-full h-full object-cover" />
                         </div>
-                        {user.name}
+                        <div>
+                          <p>{user.name}</p>
+                          <p className="text-[10px] text-muted-foreground font-mono uppercase">{user.id}</p>
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell>
@@ -165,6 +221,19 @@ export default function UsersManagementPage() {
                       </div>
                     </TableCell>
                     <TableCell>
+                      {user.role === 'Student' ? (
+                        <div className="flex flex-col gap-1">
+                          <Badge variant="secondary" className="w-fit text-[10px] h-5">
+                            <GraduationCap className="w-3 h-3 mr-1" />
+                            {user.faculty}
+                          </Badge>
+                          <span className="text-xs text-muted-foreground ml-1">Semester {user.semester}</span>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
                       <Badge variant="outline" className="flex w-fit items-center gap-1">
                         <Shield className="w-3 h-3" />
                         {user.role}
@@ -172,7 +241,7 @@ export default function UsersManagementPage() {
                     </TableCell>
                     <TableCell className="text-right">
                       <Button variant="ghost" size="icon">
-                        <MoreHorizontal className="w-4 h-4" />
+                        <FileBarChart className="w-4 h-4 text-primary" />
                       </Button>
                     </TableCell>
                   </TableRow>

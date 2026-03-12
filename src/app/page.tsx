@@ -14,8 +14,8 @@ export default function SplashScreen() {
   useEffect(() => {
     const timer = setTimeout(() => {
       setShow(false);
-      setTimeout(() => router.push("/login"), 1000);
-    }, 4000);
+      setTimeout(() => router.push("/login"), 800);
+    }, 2000); // Shortened for a faster feel
     return () => clearTimeout(timer);
   }, [router]);
 
@@ -29,7 +29,7 @@ export default function SplashScreen() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0, scale: 0.8, filter: "blur(10px)" }}
-            transition={{ duration: 1 }}
+            transition={{ duration: 0.8 }}
             className="text-center"
           >
             <motion.div
@@ -43,7 +43,7 @@ export default function SplashScreen() {
                 duration: 2, 
                 repeat: Infinity,
                 repeatType: "reverse",
-                scale: { duration: 1.5, ease: "easeOut" }
+                scale: { duration: 1, ease: "easeOut" }
               }}
               className="relative w-32 h-32 mx-auto mb-8 rounded-full overflow-hidden bg-white shadow-2xl"
             >
@@ -61,13 +61,13 @@ export default function SplashScreen() {
             <motion.div
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.5, duration: 1 }}
+              transition={{ delay: 0.3, duration: 0.8 }}
             >
               <h1 className="text-4xl font-headline font-bold text-primary mb-2">
                 Balmiki Lincoln College
               </h1>
               <p className="text-xl text-muted-foreground font-medium tracking-wide">
-                Student Attendance Management System
+                EduScan Attendance System
               </p>
             </motion.div>
             
@@ -75,7 +75,7 @@ export default function SplashScreen() {
               className="mt-12 flex justify-center gap-1"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 1 }}
+              transition={{ delay: 0.8 }}
             >
               {[0, 1, 2].map((i) => (
                 <motion.div

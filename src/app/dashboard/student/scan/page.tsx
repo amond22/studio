@@ -51,8 +51,8 @@ export default function StudentScannerPage() {
       html5QrCodeRef.current = html5QrCode;
 
       const config = { 
-        fps: 10, 
-        qrbox: { width: 250, height: 250 },
+        fps: 20, // Higher FPS for smoother scanning
+        qrbox: { width: 280, height: 280 }, // Slightly larger box
         aspectRatio: 1.0
       };
 
@@ -86,7 +86,6 @@ export default function StudentScannerPage() {
   useEffect(() => {
     startScanner();
     return () => {
-      // This cleanup must be robust to prevent split screens
       stopScanner();
     };
   }, []);
@@ -191,6 +190,17 @@ export default function StudentScannerPage() {
                 className="w-full min-h-[400px] [&_video]:object-cover"
               ></div>
               
+              {/* Custom Laser Overlay for Alignment */}
+              <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+                <div className="w-[280px] h-[280px] border-2 border-white/50 rounded-3xl relative overflow-hidden">
+                  <motion.div 
+                    animate={{ top: ["0%", "100%", "0%"] }}
+                    transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                    className="absolute left-0 right-0 h-1 bg-primary shadow-[0_0_15px_rgba(var(--primary),0.8)]"
+                  />
+                </div>
+              </div>
+
               <AnimatePresence>
                 {loading && (
                   <motion.div 
@@ -200,7 +210,7 @@ export default function StudentScannerPage() {
                     className="absolute inset-0 bg-black/70 z-50 flex flex-col items-center justify-center text-white backdrop-blur-sm"
                   >
                     <RefreshCw className="w-12 h-12 text-primary animate-spin mb-4" />
-                    <p className="font-bold tracking-widest uppercase text-xs text-primary">Working...</p>
+                    <p className="font-bold tracking-widest uppercase text-xs text-primary">Processing...</p>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -228,25 +238,26 @@ export default function StudentScannerPage() {
             animate={{ scale: 1, opacity: 1 }}
             className="text-center space-y-6"
           >
-            <div className="p-12 bg-white rounded-[2.5rem] shadow-2xl flex flex-col items-center gap-8 border border-primary/5">
+            <div className="p-12 bg-white rounded-[2.5rem] shadow-2xl flex flex-col items-center gap-8 border-4 border-green-500/20">
               <div className="relative">
                 <motion.div 
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
-                  className="w-28 h-28 bg-green-50 rounded-full flex items-center justify-center border-4 border-white shadow-xl"
+                  className="w-28 h-28 bg-green-500 rounded-full flex items-center justify-center border-4 border-white shadow-xl"
                 >
-                  <CheckCircle2 className="w-16 h-16 text-green-500" />
+                  <CheckCircle2 className="w-16 h-16 text-white" />
                 </motion.div>
                 <motion.div 
-                  animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0, 0.5] }}
+                  animate={{ scale: [1, 1.4, 1], opacity: [0.3, 0, 0.3] }}
                   transition={{ duration: 2, repeat: Infinity }}
-                  className="absolute inset-0 bg-green-500/20 rounded-full -z-10"
+                  className="absolute inset-0 bg-green-500/30 rounded-full -z-10"
                 />
               </div>
 
               <div className="space-y-2">
-                <h2 className="text-4xl font-headline font-bold text-foreground">Verified!</h2>
-                <p className="text-muted-foreground font-medium text-lg">{scanResult.subject}</p>
+                <h2 className="text-4xl font-headline font-bold text-green-600">Successfully Scanned!</h2>
+                <p className="text-muted-foreground font-medium text-lg">Attendance Registered for:</p>
+                <p className="text-2xl font-bold text-primary px-4 py-2 bg-primary/5 rounded-xl">{scanResult.subject}</p>
               </div>
 
               <div className="w-full max-w-sm bg-muted/30 rounded-2xl p-6 grid grid-cols-2 gap-6 text-left border border-muted">
@@ -260,9 +271,14 @@ export default function StudentScannerPage() {
                 </div>
               </div>
 
-              <Button className="w-full button-hover h-16 rounded-2xl font-bold text-xl shadow-xl shadow-primary/20" onClick={resetScanner}>
-                Scan Next Class
-              </Button>
+              <div className="flex flex-col gap-3 w-full">
+                <Button className="w-full button-hover h-16 rounded-2xl font-bold text-xl shadow-xl shadow-primary/20" onClick={resetScanner}>
+                  Scan Another Class
+                </Button>
+                <Button variant="ghost" onClick={() => window.location.href = '/dashboard'} className="text-muted-foreground">
+                  Go back to Dashboard
+                </Button>
+              </div>
             </div>
           </motion.div>
         )}
@@ -273,13 +289,14 @@ export default function StudentScannerPage() {
           <AlertCircle className="w-6 h-6 text-primary" />
         </div>
         <div className="text-sm">
-          <p className="font-bold text-primary mb-1 text-base">Automatic Registration</p>
-          <p className="text-muted-foreground leading-relaxed">
-            Attendance is instantly recorded and synced with the college database. Keep scanning until you see the verification message.
-          </p>
+          <p className="font-bold text-primary mb-1 text-base">Scanning Tips</p>
+          <ul className="text-muted-foreground list-disc list-inside space-y-1">
+            <li>Hold the phone steady about 6-10 inches from the QR.</li>
+            <li>Ensure the teacher's screen brightness is up.</li>
+            <li>Align the QR within the targeting frame.</li>
+          </ul>
         </div>
       </div>
     </div>
   );
 }
-

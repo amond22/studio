@@ -31,7 +31,6 @@ export default function StudentScannerPage() {
         console.warn("Scanner stop warning:", err);
       } finally {
         setScanning(false);
-        // Clear reference completely
         html5QrCodeRef.current = null;
       }
     }
@@ -43,16 +42,21 @@ export default function StudentScannerPage() {
     setLoading(true);
     
     try {
-      // Small delay to ensure previous instance is fully gone
       await stopScanner();
-      await new Promise(resolve => setTimeout(resolve, 300));
+      // Wait for DOM to be ready
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       const html5QrCode = new Html5Qrcode("reader");
       html5QrCodeRef.current = html5QrCode;
 
+      // Higher FPS and better box sizing for faster response
       const config = { 
-        fps: 20, // Higher FPS for smoother scanning
-        qrbox: { width: 280, height: 280 }, // Slightly larger box
+        fps: 25, 
+        qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
+          const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+          const boxSize = Math.floor(minEdge * 0.7);
+          return { width: boxSize, height: boxSize };
+        },
         aspectRatio: 1.0
       };
 
@@ -63,7 +67,7 @@ export default function StudentScannerPage() {
           handleScanSuccess(decodedText);
         },
         () => {
-          // Scanning...
+          // Scanning in progress...
         }
       );
       
@@ -75,7 +79,7 @@ export default function StudentScannerPage() {
       toast({
         variant: 'destructive',
         title: 'Camera Connection Failed',
-        description: 'Ensure you have allowed camera access and no other app is using it.',
+        description: 'Ensure you have allowed camera access in your browser settings.',
       });
     } finally {
       setLoading(false);
@@ -91,14 +95,12 @@ export default function StudentScannerPage() {
   }, []);
 
   const handleScanSuccess = async (decodedText: string) => {
-    // Only process one scan at a time
     if (!scanning) return;
     
     setLoading(true);
     setScanning(false);
     
     try {
-      // Ensure the scanner stops immediately upon success
       await stopScanner();
       
       const qrData = JSON.parse(decodedText);
@@ -108,7 +110,6 @@ export default function StudentScannerPage() {
         throw new Error("Invalid student session.");
       }
 
-      // Record the attendance in the shared data store
       const success = recordScanAttendance({
         studentId: user.id,
         studentName: user.name,
@@ -128,19 +129,17 @@ export default function StudentScannerPage() {
         toast({
           variant: "destructive",
           title: "Duplicate Scan",
-          description: "Attendance for this session has already been recorded today.",
+          description: "You have already marked attendance for this session today.",
         });
-        // Restart if it was a duplicate
         startScanner();
       }
     } catch (e) {
       console.error("Invalid QR", e);
       toast({
         variant: "destructive",
-        title: "Incompatible QR Code",
-        description: "Please scan a valid session QR from your teacher.",
+        title: "Scan Failed",
+        description: "The QR code is invalid or the session has expired.",
       });
-      // Restart scanner for next attempt
       startScanner();
     } finally {
       setLoading(false);
@@ -153,24 +152,18 @@ export default function StudentScannerPage() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto space-y-8">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-primary/10 rounded-lg">
-            <Scan className="w-6 h-6 text-primary" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-headline font-bold text-primary">Attendance Scan</h1>
-            <p className="text-muted-foreground text-sm">Align the teacher's QR code</p>
-          </div>
+    <div className="max-w-xl mx-auto space-y-6">
+      <div className="flex items-center justify-between px-2">
+        <div>
+          <h1 className="text-2xl font-headline font-bold text-primary">Attendance Scan</h1>
+          <p className="text-muted-foreground text-xs">Align the QR code within the frame</p>
         </div>
         <Button 
           variant={wifiBypass ? "outline" : "destructive"} 
           size="sm" 
           onClick={() => setWifiBypass(!wifiBypass)}
-          className="text-[10px] uppercase font-bold tracking-widest h-8"
+          className="text-[10px] h-8"
         >
-          {wifiBypass ? <ShieldOff className="w-3 h-3 mr-1" /> : <Wifi className="w-3 h-3 mr-1" />}
           Net Check: {wifiBypass ? "OFF" : "ON"}
         </Button>
       </div>
@@ -178,53 +171,49 @@ export default function StudentScannerPage() {
       <AnimatePresence mode="wait">
         {!scanResult ? (
           <motion.div
-            key="scanner"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className="space-y-4"
+            key="scanner-view"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="relative"
           >
-            <Card className="border-none shadow-2xl overflow-hidden bg-black relative rounded-3xl min-h-[400px]">
+            <Card className="border-none shadow-2xl overflow-hidden bg-black aspect-square rounded-[2rem] relative">
               <div 
                 id="reader" 
-                className="w-full min-h-[400px] [&_video]:object-cover"
+                className="w-full h-full [&_video]:object-cover"
               ></div>
               
-              {/* Custom Laser Overlay for Alignment */}
-              <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-                <div className="w-[280px] h-[280px] border-2 border-white/50 rounded-3xl relative overflow-hidden">
+              {/* Responsive Alignment UI */}
+              <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-10">
+                <div className="w-2/3 h-2/3 border-2 border-white/30 rounded-3xl relative">
                   <motion.div 
-                    animate={{ top: ["0%", "100%", "0%"] }}
-                    transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                    className="absolute left-0 right-0 h-1 bg-primary shadow-[0_0_15px_rgba(var(--primary),0.8)]"
+                    animate={{ top: ["5%", "95%", "5%"] }}
+                    transition={{ duration: 2.5, repeat: Infinity, ease: "linear" }}
+                    className="absolute left-0 right-0 h-0.5 bg-primary shadow-[0_0_20px_rgba(var(--primary),1)]"
                   />
+                  {/* Corner Accents */}
+                  <div className="absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 border-primary rounded-tl-lg" />
+                  <div className="absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 border-primary rounded-tr-lg" />
+                  <div className="absolute bottom-0 left-0 w-6 h-6 border-b-4 border-l-4 border-primary rounded-bl-lg" />
+                  <div className="absolute bottom-0 right-0 w-6 h-6 border-b-4 border-r-4 border-primary rounded-br-lg" />
                 </div>
               </div>
 
-              <AnimatePresence>
-                {loading && (
-                  <motion.div 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="absolute inset-0 bg-black/70 z-50 flex flex-col items-center justify-center text-white backdrop-blur-sm"
-                  >
-                    <RefreshCw className="w-12 h-12 text-primary animate-spin mb-4" />
-                    <p className="font-bold tracking-widest uppercase text-xs text-primary">Processing...</p>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+              {loading && (
+                <div className="absolute inset-0 bg-black/60 z-20 flex flex-col items-center justify-center text-white backdrop-blur-sm">
+                  <RefreshCw className="w-10 h-10 text-primary animate-spin mb-3" />
+                  <p className="text-xs font-bold tracking-widest uppercase text-primary">Analyzing...</p>
+                </div>
+              )}
 
-              {hasCameraPermission === false && !loading && (
-                <div className="absolute inset-0 z-50 p-6 flex items-center justify-center bg-background/95 backdrop-blur-sm">
-                  <Alert variant="destructive" className="max-w-sm">
+              {hasCameraPermission === false && (
+                <div className="absolute inset-0 z-30 p-6 flex items-center justify-center bg-background/95">
+                  <Alert variant="destructive">
                     <Camera className="h-4 w-4" />
-                    <AlertTitle>Camera Access Required</AlertTitle>
-                    <AlertDescription className="space-y-4">
-                      <p>Please check your browser permissions to use the scanner.</p>
-                      <Button onClick={startScanner} variant="outline" className="w-full">
-                        Try Again
-                      </Button>
+                    <AlertTitle>Camera Required</AlertTitle>
+                    <AlertDescription className="mt-2">
+                      Please allow camera access to use the attendance scanner.
+                      <Button onClick={startScanner} variant="outline" className="w-full mt-4">Retry</Button>
                     </AlertDescription>
                   </Alert>
                 </div>
@@ -233,50 +222,50 @@ export default function StudentScannerPage() {
           </motion.div>
         ) : (
           <motion.div
-            key="result"
+            key="success-view"
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="text-center space-y-6"
+            className="px-2"
           >
-            <div className="p-12 bg-white rounded-[2.5rem] shadow-2xl flex flex-col items-center gap-8 border-4 border-green-500/20">
-              <div className="relative">
+            <div className="bg-white rounded-[2.5rem] shadow-xl p-8 text-center border-4 border-green-500/10">
+              <div className="relative inline-block mb-6">
                 <motion.div 
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
-                  className="w-28 h-28 bg-green-500 rounded-full flex items-center justify-center border-4 border-white shadow-xl"
+                  className="w-24 h-24 bg-green-500 rounded-full flex items-center justify-center shadow-lg"
                 >
-                  <CheckCircle2 className="w-16 h-16 text-white" />
+                  <CheckCircle2 className="w-12 h-12 text-white" />
                 </motion.div>
                 <motion.div 
-                  animate={{ scale: [1, 1.4, 1], opacity: [0.3, 0, 0.3] }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                  className="absolute inset-0 bg-green-500/30 rounded-full -z-10"
+                  animate={{ scale: [1, 1.3, 1], opacity: [0.5, 0, 0.5] }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                  className="absolute inset-0 bg-green-500 rounded-full -z-10"
                 />
               </div>
 
-              <div className="space-y-2">
-                <h2 className="text-4xl font-headline font-bold text-green-600">Successfully Scanned!</h2>
-                <p className="text-muted-foreground font-medium text-lg">Attendance Registered for:</p>
-                <p className="text-2xl font-bold text-primary px-4 py-2 bg-primary/5 rounded-xl">{scanResult.subject}</p>
+              <h2 className="text-3xl font-headline font-bold text-green-600 mb-2">Success!</h2>
+              <p className="text-muted-foreground font-medium mb-6">Attendance Registered for:</p>
+              
+              <div className="bg-primary/5 rounded-2xl p-6 mb-8 text-left border border-primary/10">
+                <p className="text-2xl font-bold text-primary mb-4">{scanResult.subject}</p>
+                <div className="grid grid-cols-2 gap-4 text-xs font-bold uppercase tracking-widest opacity-70">
+                  <div>
+                    <p className="text-muted-foreground mb-1">Faculty</p>
+                    <p className="text-foreground">{scanResult.faculty}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-muted-foreground mb-1">Semester</p>
+                    <p className="text-foreground">{scanResult.semester}</p>
+                  </div>
+                </div>
               </div>
 
-              <div className="w-full max-w-sm bg-muted/30 rounded-2xl p-6 grid grid-cols-2 gap-6 text-left border border-muted">
-                <div className="space-y-1">
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Faculty</p>
-                  <p className="font-bold text-sm">{scanResult.faculty}</p>
-                </div>
-                <div className="space-y-1 text-right">
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Semester</p>
-                  <p className="font-bold text-sm">{scanResult.semester}</p>
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-3 w-full">
-                <Button className="w-full button-hover h-16 rounded-2xl font-bold text-xl shadow-xl shadow-primary/20" onClick={resetScanner}>
-                  Scan Another Class
+              <div className="flex flex-col gap-3">
+                <Button className="w-full h-14 rounded-2xl font-bold text-lg" onClick={resetScanner}>
+                  Scan Another
                 </Button>
-                <Button variant="ghost" onClick={() => window.location.href = '/dashboard'} className="text-muted-foreground">
-                  Go back to Dashboard
+                <Button variant="ghost" onClick={() => window.location.href = '/dashboard'}>
+                  Back to Dashboard
                 </Button>
               </div>
             </div>
@@ -284,16 +273,14 @@ export default function StudentScannerPage() {
         )}
       </AnimatePresence>
 
-      <div className="p-6 bg-primary/5 rounded-3xl border border-primary/10 flex items-start gap-5">
-        <div className="p-3 bg-primary/10 rounded-2xl shrink-0">
-          <AlertCircle className="w-6 h-6 text-primary" />
-        </div>
-        <div className="text-sm">
-          <p className="font-bold text-primary mb-1 text-base">Scanning Tips</p>
-          <ul className="text-muted-foreground list-disc list-inside space-y-1">
-            <li>Hold the phone steady about 6-10 inches from the QR.</li>
-            <li>Ensure the teacher's screen brightness is up.</li>
-            <li>Align the QR within the targeting frame.</li>
+      <div className="p-4 bg-muted/40 rounded-2xl flex items-start gap-3">
+        <AlertCircle className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+        <div className="text-xs leading-relaxed text-muted-foreground">
+          <p className="font-bold text-foreground mb-1">How to scan properly:</p>
+          <ul className="list-disc list-inside space-y-1">
+            <li>Keep the phone steady and about 8-12 inches away.</li>
+            <li>Ensure the teacher's screen is clear and bright.</li>
+            <li>Wait for the green confirmation screen.</li>
           </ul>
         </div>
       </div>

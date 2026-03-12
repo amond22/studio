@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { GraduationCap, Plus, MoreVertical, Edit, Trash2, BookOpen, ChevronRight, Eye } from "lucide-react";
+import { GraduationCap, Plus, MoreVertical, Edit, Trash2, BookOpen, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
@@ -23,14 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
-
-interface Faculty {
-  id: string;
-  name: string;
-  longName: string;
-  semesters: number;
-  subjects: number;
-}
+import { Faculty, getStoredFaculties, saveFaculties } from "@/lib/auth-store";
 
 export default function FacultyManagementPage() {
   const [faculties, setFaculties] = useState<Faculty[]>([]);
@@ -43,18 +36,7 @@ export default function FacultyManagementPage() {
   const [fullName, setFullName] = useState("");
 
   useEffect(() => {
-    const stored = localStorage.getItem('eduscan_faculties');
-    if (stored) {
-      setFaculties(JSON.parse(stored));
-    } else {
-      const initial = [
-        { id: "BIT", name: "BIT", longName: "Bachelor of Information Technology", semesters: 8, subjects: 42 },
-        { id: "BBA", name: "BBA", longName: "Bachelor of Business Administration", semesters: 8, subjects: 38 },
-        { id: "BHM", name: "BHM", longName: "Bachelor of Hotel Management", semesters: 8, subjects: 35 },
-      ];
-      setFaculties(initial);
-      localStorage.setItem('eduscan_faculties', JSON.stringify(initial));
-    }
+    setFaculties(getStoredFaculties());
   }, []);
 
   const handleAdd = () => {
@@ -68,16 +50,18 @@ export default function FacultyManagementPage() {
     };
     const updated = [...faculties, newFac];
     setFaculties(updated);
-    localStorage.setItem('eduscan_faculties', JSON.stringify(updated));
+    saveFaculties(updated);
     toast({ title: "Faculty Created", description: `${fullName} has been added.` });
     setOpen(false);
     setCode("");
     setFullName("");
   };
 
-  const handleFacultyClick = (facId: string) => {
-    toast({ title: "Loading Faculty", description: `Fetching records for ${facId}...` });
-    // In a real app, you might navigate or open a detailed view
+  const handleDelete = (id: string) => {
+    const updated = faculties.filter(f => f.id !== id);
+    setFaculties(updated);
+    saveFaculties(updated);
+    toast({ title: "Faculty Removed", description: "The faculty has been deleted from the records." });
   };
 
   return (
@@ -119,8 +103,7 @@ export default function FacultyManagementPage() {
         {faculties.map((fac) => (
           <Card 
             key={fac.id} 
-            className="border-none shadow-sm group cursor-pointer hover:shadow-lg transition-all active:scale-[0.98]"
-            onClick={() => handleFacultyClick(fac.id)}
+            className="border-none shadow-sm group hover:shadow-lg transition-all active:scale-[0.98]"
           >
             <CardHeader className="flex flex-row items-start justify-between">
               <div>
@@ -128,16 +111,13 @@ export default function FacultyManagementPage() {
                 <p className="text-sm text-muted-foreground mt-1">{fac.longName}</p>
               </div>
               <DropdownMenu>
-                <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="h-8 w-8">
                     <MoreVertical className="w-4 h-4" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem className="gap-2">
-                    <Edit className="w-4 h-4" /> Edit
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="gap-2 text-destructive">
+                  <DropdownMenuItem className="gap-2 text-destructive" onClick={() => handleDelete(fac.id)}>
                     <Trash2 className="w-4 h-4" /> Delete
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -157,10 +137,7 @@ export default function FacultyManagementPage() {
               <Button 
                 variant="outline" 
                 className="w-full mt-4 group-hover:bg-primary group-hover:text-white transition-all"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  router.push('/dashboard/admin/subjects');
-                }}
+                onClick={() => router.push('/dashboard/admin/subjects')}
               >
                 <BookOpen className="w-4 h-4 mr-2" />
                 Manage Subjects

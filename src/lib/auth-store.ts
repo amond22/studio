@@ -33,6 +33,24 @@ export interface AttendanceRecord {
   timestamp?: string;
 }
 
+export interface Subject {
+  id: string;
+  code: string;
+  name: string;
+  faculty: string;
+  semester: number;
+  teacherId?: string;
+  teacherName?: string;
+}
+
+export interface Faculty {
+  id: string;
+  name: string;
+  longName: string;
+  semesters: number;
+  subjects: number;
+}
+
 const DEFAULT_USERS: User[] = [
   {
     id: "admin",
@@ -66,21 +84,27 @@ const DEFAULT_USERS: User[] = [
   }
 ];
 
+const DEFAULT_FACULTIES: Faculty[] = [
+  { id: "BIT", name: "BIT", longName: "Bachelor of Information Technology", semesters: 8, subjects: 42 },
+  { id: "BBA", name: "BBA", longName: "Bachelor of Business Administration", semesters: 8, subjects: 38 },
+  { id: "BHM", name: "BHM", longName: "Bachelor of Hotel Management", semesters: 8, subjects: 35 },
+];
+
+const DEFAULT_SUBJECTS: Subject[] = [
+  { id: "1", code: "BIT-401", name: "Cloud Computing", faculty: "BIT", semester: 7, teacherName: "Dr. Robert Smith", teacherId: "teacher" },
+  { id: "2", code: "BIT-302", name: "Database Systems", faculty: "BIT", semester: 5, teacherName: "Dr. Robert Smith", teacherId: "teacher" },
+  { id: "3", code: "BBA-201", name: "Microeconomics", faculty: "BBA", semester: 3, teacherName: "Unassigned" },
+];
+
+// --- USER PERSISTENCE ---
 export const getStoredUsers = (): User[] => {
   if (typeof window === 'undefined') return DEFAULT_USERS;
-  
   const stored = localStorage.getItem('eduscan_users');
   if (!stored) {
     localStorage.setItem('eduscan_users', JSON.stringify(DEFAULT_USERS));
     return DEFAULT_USERS;
   }
-  
-  try {
-    const parsed = JSON.parse(stored);
-    return Array.isArray(parsed) ? parsed : DEFAULT_USERS;
-  } catch (e) {
-    return DEFAULT_USERS;
-  }
+  try { return JSON.parse(stored); } catch (e) { return DEFAULT_USERS; }
 };
 
 export const saveUsers = (users: User[]) => {
@@ -90,6 +114,43 @@ export const saveUsers = (users: User[]) => {
   }
 };
 
+// --- FACULTY PERSISTENCE ---
+export const getStoredFaculties = (): Faculty[] => {
+  if (typeof window === 'undefined') return DEFAULT_FACULTIES;
+  const stored = localStorage.getItem('eduscan_faculties');
+  if (!stored) {
+    localStorage.setItem('eduscan_faculties', JSON.stringify(DEFAULT_FACULTIES));
+    return DEFAULT_FACULTIES;
+  }
+  try { return JSON.parse(stored); } catch (e) { return DEFAULT_FACULTIES; }
+};
+
+export const saveFaculties = (faculties: Faculty[]) => {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('eduscan_faculties', JSON.stringify(faculties));
+    window.dispatchEvent(new Event('storage'));
+  }
+};
+
+// --- SUBJECT PERSISTENCE ---
+export const getStoredSubjects = (): Subject[] => {
+  if (typeof window === 'undefined') return DEFAULT_SUBJECTS;
+  const stored = localStorage.getItem('eduscan_subjects');
+  if (!stored) {
+    localStorage.setItem('eduscan_subjects', JSON.stringify(DEFAULT_SUBJECTS));
+    return DEFAULT_SUBJECTS;
+  }
+  try { return JSON.parse(stored); } catch (e) { return DEFAULT_SUBJECTS; }
+};
+
+export const saveSubjects = (subjects: Subject[]) => {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('eduscan_subjects', JSON.stringify(subjects));
+    window.dispatchEvent(new Event('storage'));
+  }
+};
+
+// --- LOGO PERSISTENCE ---
 export const getCollegeLogo = (): string => {
   if (typeof window === 'undefined') return "https://picsum.photos/seed/edu1/200/200";
   return localStorage.getItem('eduscan_college_logo') || "https://picsum.photos/seed/edu1/200/200";
@@ -102,6 +163,7 @@ export const setCollegeLogo = (url: string) => {
   }
 };
 
+// --- ATTENDANCE PERSISTENCE ---
 export const getAttendanceRecords = (): AttendanceRecord[] => {
   if (typeof window === 'undefined') return [];
   const stored = localStorage.getItem('eduscan_attendance_records');
@@ -111,6 +173,7 @@ export const getAttendanceRecords = (): AttendanceRecord[] => {
 export const saveAttendanceRecords = (records: AttendanceRecord[]) => {
   if (typeof window !== 'undefined') {
     localStorage.setItem('eduscan_attendance_records', JSON.stringify(records));
+    window.dispatchEvent(new Event('storage'));
   }
 };
 
@@ -193,6 +256,7 @@ export const recordScanAttendance = (data: {
   return true;
 };
 
+// --- AUTH SESSION ---
 export const login = (userId: string, passwordInput: string, role: UserRole): User | null => {
   const users = getStoredUsers();
   const cleanId = userId.trim().toLowerCase();

@@ -1,3 +1,28 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "college-logo",
+      "description": "College Logo",
+      "imageUrl": "https://picsum.photos/seed/edu1/200/200",
+      "imageHint": "Education Logo"
+    },
+    {
+      "id": "avatar-admin",
+      "description": "Admin Profile Picture",
+      "imageUrl": "https://picsum.photos/seed/admin/150/150",
+      "imageHint": "Professional Profile"
+    },
+    {
+      "id": "avatar-teacher",
+      "description": "Teacher Profile Picture",
+      "imageUrl": "https://picsum.photos/seed/teacher/150/150",
+      "imageHint": "Teacher Portrait"
+    },
+    {
+      "id": "avatar-student",
+      "description": "Student Profile Picture",
+      "imageUrl": "https://picsum.photos/seed/student/150/150",
+      "imageHint": "Student Portrait"
+    }
+  ]
 }

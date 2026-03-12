@@ -8,23 +8,24 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { login, getCurrentUser, getStoredUsers, UserRole } from "@/lib/auth-store";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { login, getCurrentUser, getStoredUsers, UserRole, getCollegeLogo } from "@/lib/auth-store";
 import { useToast } from "@/hooks/use-toast";
-import { KeyRound, User as UserIcon, Building2, Info, ArrowRight, Loader2, ShieldCheck, GraduationCap, Users } from "lucide-react";
+import { KeyRound, User as UserIcon, Building2, Info, ArrowRight, Loader2, ShieldCheck, GraduationCap, Users, AlertCircle } from "lucide-react";
 
 export default function LoginPage() {
   const [userId, setUserId] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<UserRole>("Student");
   const [loading, setLoading] = useState(false);
+  const [showDebug, setShowDebug] = useState(false);
+  const [collegeLogo, setCollegeLogo] = useState("https://picsum.photos/seed/edu1/200/200");
   const router = useRouter();
   const { toast } = useToast();
 
   useEffect(() => {
-    // Ensure default users exist in storage
     getStoredUsers();
-    
+    setCollegeLogo(getCollegeLogo());
     const user = getCurrentUser();
     if (user) {
       router.push("/dashboard");
@@ -35,7 +36,6 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
 
-    // Minor delay for feedback
     await new Promise((resolve) => setTimeout(resolve, 800));
 
     const user = login(userId, password, role);
@@ -47,10 +47,11 @@ export default function LoginPage() {
       });
       router.push("/dashboard");
     } else {
+      setShowDebug(true);
       toast({
         variant: "destructive",
         title: "Authentication Failed",
-        description: `Invalid Portal ID or Password for the ${role} portal.`,
+        description: `Invalid Portal Login ID or Password for the ${role} portal.`,
       });
     }
     setLoading(false);
@@ -65,8 +66,8 @@ export default function LoginPage() {
         className="w-full max-w-md"
       >
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center p-4 bg-primary/10 rounded-2xl mb-4 shadow-inner">
-            <Building2 className="w-10 h-10 text-primary" />
+          <div className="inline-flex items-center justify-center p-1 bg-white rounded-full mb-4 shadow-xl overflow-hidden w-20 h-20 border-4 border-primary/10">
+            <img src={collegeLogo} alt="College Logo" className="w-full h-full object-cover" />
           </div>
           <h1 className="text-3xl font-headline font-bold text-primary tracking-tight">EduScan Portal</h1>
           <p className="text-muted-foreground mt-2 font-medium text-sm">Balmiki Lincoln College Management</p>
@@ -132,16 +133,29 @@ export default function LoginPage() {
                 </div>
               </div>
 
+              {showDebug && (
+                <div className="p-4 bg-orange-50 rounded-xl border border-orange-200 animate-in fade-in slide-in-from-top-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <AlertCircle className="w-4 h-4 text-orange-600" />
+                    <p className="font-bold text-orange-600 text-[10px] uppercase tracking-widest">Authentication Tips</p>
+                  </div>
+                  <ul className="text-[11px] text-orange-800 space-y-1 ml-1 font-medium">
+                    <li>• Ensure the <strong>Role Tab</strong> matches the user's account.</li>
+                    <li>• User IDs are case-insensitive (e.g., 'admin' is same as 'Admin').</li>
+                    <li>• Passwords are case-sensitive.</li>
+                    <li>• Default: <strong>admin</strong> / <strong>admin-password</strong></li>
+                  </ul>
+                </div>
+              )}
+
               <div className="p-4 bg-primary/5 rounded-xl border border-primary/10">
                 <div className="flex items-center gap-2 mb-2">
                   <Info className="w-4 h-4 text-primary" />
-                  <p className="font-bold text-primary text-[10px] uppercase tracking-widest">Login Help</p>
+                  <p className="font-bold text-primary text-[10px] uppercase tracking-widest">Secure Access</p>
                 </div>
-                <ul className="text-[11px] text-muted-foreground space-y-1 ml-1">
-                  <li>• IDs are case-insensitive.</li>
-                  <li>• Passwords are case-sensitive.</li>
-                  <li>• Ensure the correct <strong>Role Tab</strong> is active.</li>
-                </ul>
+                <p className="text-[10px] text-muted-foreground ml-1">
+                  Access is restricted to authorized faculty and students of Balmiki Lincoln College.
+                </p>
               </div>
             </CardContent>
             

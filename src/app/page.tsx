@@ -4,22 +4,22 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { PlaceHolderImages } from "@/lib/placeholder-images";
+import { getCollegeLogo } from "@/lib/auth-store";
 import Image from "next/image";
 
 export default function SplashScreen() {
   const router = useRouter();
   const [show, setShow] = useState(true);
+  const [logoUrl, setLogoUrl] = useState("https://picsum.photos/seed/edu1/200/200");
 
   useEffect(() => {
+    setLogoUrl(getCollegeLogo());
     const timer = setTimeout(() => {
       setShow(false);
       setTimeout(() => router.push("/login"), 800);
-    }, 2000); // Shortened for a faster feel
+    }, 2000);
     return () => clearTimeout(timer);
   }, [router]);
-
-  const logo = PlaceHolderImages.find((img) => img.id === "college-logo");
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background overflow-hidden">
@@ -47,16 +47,11 @@ export default function SplashScreen() {
               }}
               className="relative w-32 h-32 mx-auto mb-8 rounded-full overflow-hidden bg-white shadow-2xl"
             >
-              {logo && (
-                <Image
-                  src={logo.imageUrl}
-                  alt={logo.description}
-                  width={200}
-                  height={200}
-                  className="w-full h-full object-cover"
-                  data-ai-hint={logo.imageHint}
-                />
-              )}
+              <img
+                src={logoUrl}
+                alt="College Logo"
+                className="w-full h-full object-cover"
+              />
             </motion.div>
             <motion.div
               initial={{ y: 20, opacity: 0 }}

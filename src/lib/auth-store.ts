@@ -90,6 +90,18 @@ export const saveUsers = (users: User[]) => {
   }
 };
 
+export const getCollegeLogo = (): string => {
+  if (typeof window === 'undefined') return "https://picsum.photos/seed/edu1/200/200";
+  return localStorage.getItem('eduscan_college_logo') || "https://picsum.photos/seed/edu1/200/200";
+};
+
+export const setCollegeLogo = (url: string) => {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('eduscan_college_logo', url);
+    window.dispatchEvent(new Event('storage'));
+  }
+};
+
 export const getAttendanceRecords = (): AttendanceRecord[] => {
   if (typeof window === 'undefined') return [];
   const stored = localStorage.getItem('eduscan_attendance_records');
@@ -108,7 +120,6 @@ export const markManualAttendance = (records: Omit<AttendanceRecord, 'id'>[]) =>
   const updatedRecords = [...currentRecords, ...newRecordsWithIds];
   saveAttendanceRecords(updatedRecords);
 
-  // Update rates for all involved students
   const users = getStoredUsers();
   const uniqueStudentIds = Array.from(new Set(records.map(r => r.studentId)));
   
@@ -118,7 +129,7 @@ export const markManualAttendance = (records: Omit<AttendanceRecord, 'id'>[]) =>
       const studentRecords = updatedRecords.filter(r => r.studentId === studentId);
       const presentCount = studentRecords.filter(r => r.status === 'Present' || r.status === 'Late').length;
       const totalCount = studentRecords.length;
-      users[userIdx].attendanceRate = Math.round((presentCount / totalCount) * 100);
+      users[userIdx].attendanceRate = Math.round((presentCount / (totalCount || 1)) * 100);
     }
   });
   saveUsers(users);
@@ -135,7 +146,6 @@ export const recordScanAttendance = (data: {
   const records = getAttendanceRecords();
   const today = new Date().toISOString().split('T')[0];
   
-  // Prevent duplicate scans for the same subject on the same day
   const alreadyMarked = records.find(r => 
     r.studentId === data.studentId && 
     r.subjectId === data.subjectId && 
@@ -152,7 +162,7 @@ export const recordScanAttendance = (data: {
     subjectName: data.subjectName,
     faculty: data.faculty,
     semester: data.semester,
-    section: "A", // Default or extracted
+    section: "A",
     date: today,
     status: 'Present',
     markedBy: 'QR Scanner',
@@ -162,17 +172,15 @@ export const recordScanAttendance = (data: {
   const updatedRecords = [...records, newRecord];
   saveAttendanceRecords(updatedRecords);
 
-  // Update student rate
   const users = getStoredUsers();
   const userIdx = users.findIndex(u => u.id === data.studentId);
   if (userIdx !== -1) {
     const studentRecords = updatedRecords.filter(r => r.studentId === data.studentId);
     const presentCount = studentRecords.filter(r => r.status === 'Present' || r.status === 'Late').length;
     const totalCount = studentRecords.length;
-    users[userIdx].attendanceRate = Math.round((presentCount / totalCount) * 100);
+    users[userIdx].attendanceRate = Math.round((presentCount / (totalCount || 1)) * 100);
     saveUsers(users);
     
-    // Update active session if necessary
     const session = localStorage.getItem('user_session');
     if (session) {
       const parsedSession = JSON.parse(session);
@@ -188,9 +196,12 @@ export const recordScanAttendance = (data: {
 export const login = (userId: string, passwordInput: string, role: UserRole): User | null => {
   const users = getStoredUsers();
   const cleanId = userId.trim().toLowerCase();
+  const cleanPw = passwordInput.trim().toLowerCase();
   
   const user = users.find(u => 
-    u.id.toLowerCase() === cleanId && u.password === passwordInput && u.role === role
+    u.id.toLowerCase() === cleanId && 
+    (u.password || "").toLowerCase() === cleanPw && 
+    u.role === role
   );
 
   if (user) {

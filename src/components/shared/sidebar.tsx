@@ -1,6 +1,7 @@
 
 "use client";
 
+import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { 
   LayoutDashboard, 
@@ -17,7 +18,7 @@ import {
   ClipboardCheck
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { User, logout } from "@/lib/auth-store";
+import { User, logout, getCollegeLogo } from "@/lib/auth-store";
 import { Button } from "@/components/ui/button";
 
 interface SidebarProps {
@@ -27,6 +28,16 @@ interface SidebarProps {
 export function AppSidebar({ user }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const [logoUrl, setLogoUrl] = useState("https://picsum.photos/seed/edu1/200/200");
+
+  useEffect(() => {
+    setLogoUrl(getCollegeLogo());
+    
+    // Listen for storage changes to update logo instantly
+    const handleStorage = () => setLogoUrl(getCollegeLogo());
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -36,11 +47,11 @@ export function AppSidebar({ user }: SidebarProps) {
   const menuItems = {
     Admin: [
       { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
-      { icon: Users, label: "Users Management", href: "/dashboard/admin/users" },
+      { icon: Users, label: "User Management", href: "/dashboard/admin/users" },
       { icon: GraduationCap, label: "Faculties", href: "/dashboard/admin/faculties" },
       { icon: BookOpen, label: "Subjects", href: "/dashboard/admin/subjects" },
       { icon: FileText, label: "Reports", href: "/dashboard/admin/reports" },
-      { icon: Settings, label: "Network Settings", href: "/dashboard/admin/settings" },
+      { icon: Settings, label: "College Controls", href: "/dashboard/admin/settings" },
     ],
     Teacher: [
       { icon: LayoutDashboard, label: "My Classes", href: "/dashboard" },
@@ -62,10 +73,10 @@ export function AppSidebar({ user }: SidebarProps) {
     <div className="flex flex-col h-full bg-white border-r shadow-sm w-64">
       <div className="p-6">
         <div className="flex items-center gap-3 mb-8">
-          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-            <QrCode className="text-white w-5 h-5" />
+          <div className="w-10 h-10 rounded-lg overflow-hidden border border-primary/10 shadow-sm bg-white shrink-0">
+            <img src={logoUrl} alt="College Logo" className="w-full h-full object-cover" />
           </div>
-          <span className="font-headline font-bold text-xl text-primary">EduScan</span>
+          <span className="font-headline font-bold text-xl text-primary truncate">EduScan</span>
         </div>
 
         <nav className="space-y-1">
@@ -89,7 +100,7 @@ export function AppSidebar({ user }: SidebarProps) {
 
       <div className="mt-auto p-6 border-t">
         <div className="flex items-center gap-3 mb-6">
-          <div className="w-10 h-10 rounded-full bg-muted overflow-hidden">
+          <div className="w-10 h-10 rounded-full bg-muted overflow-hidden shrink-0">
             <img src={user.photo} alt={user.name} className="w-full h-full object-cover" />
           </div>
           <div className="flex-1 overflow-hidden">

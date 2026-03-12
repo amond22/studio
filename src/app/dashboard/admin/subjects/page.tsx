@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { BookOpen, Plus, Search, Filter, ChevronRight, Eye, MoreVertical } from "lucide-react";
+import { BookOpen, Plus, Search, Filter, ChevronRight, Eye, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -31,6 +31,8 @@ export default function SubjectsManagementPage() {
   const [open, setOpen] = useState(false);
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [semesterFilter, setSemesterFilter] = useState("all");
+  const [facultyFilter, setFacultyFilter] = useState("all");
   const { toast } = useToast();
 
   // Form
@@ -66,7 +68,7 @@ export default function SubjectsManagementPage() {
     const updated = [...subjects, newSub];
     setSubjects(updated);
     localStorage.setItem('eduscan_subjects', JSON.stringify(updated));
-    toast({ title: "Subject Added", description: `${name} has been registered.` });
+    toast({ title: "Subject Added", description: `${name} has been registered for Semester ${semester}.` });
     setOpen(false);
     setCode("");
     setName("");
@@ -76,6 +78,12 @@ export default function SubjectsManagementPage() {
     setSelectedSubject(sub);
     setDetailOpen(true);
   };
+
+  const filteredSubjects = subjects.filter(sub => {
+    const matchesSemester = semesterFilter === "all" || sub.semester.toString() === semesterFilter;
+    const matchesFaculty = facultyFilter === "all" || sub.faculty === facultyFilter;
+    return matchesSemester && matchesFaculty;
+  });
 
   return (
     <div className="space-y-8">
@@ -120,9 +128,12 @@ export default function SubjectsManagementPage() {
                 <Input placeholder="Introduction to IT" value={name} onChange={(e) => setName(e.target.value)} />
               </div>
               <div className="space-y-2">
-                <Label>Semester</Label>
+                <Label className="flex items-center gap-2">
+                  <Layers className="w-4 h-4 text-muted-foreground" />
+                  Target Semester
+                </Label>
                 <Select value={semester} onValueChange={setSemester}>
-                  <SelectTrigger>
+                  <SelectTrigger className="border-primary/20 bg-primary/5 font-bold">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -131,6 +142,7 @@ export default function SubjectsManagementPage() {
                     ))}
                   </SelectContent>
                 </Select>
+                <p className="text-[10px] text-muted-foreground italic">Subjects will be filtered by this semester in QR generation.</p>
               </div>
             </div>
             <DialogFooter>
@@ -140,19 +152,39 @@ export default function SubjectsManagementPage() {
         </Dialog>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-4">
+      <div className="flex flex-col lg:flex-row gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Search subjects..." className="pl-10" />
         </div>
-        <Button variant="outline">
-          <Filter className="w-4 h-4 mr-2" />
-          Filter
-        </Button>
+        <div className="flex gap-2">
+          <Select value={facultyFilter} onValueChange={setFacultyFilter}>
+            <SelectTrigger className="w-[120px]">
+              <SelectValue placeholder="Faculty" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="BIT">BIT</SelectItem>
+              <SelectItem value="BBA">BBA</SelectItem>
+              <SelectItem value="BHM">BHM</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={semesterFilter} onValueChange={setSemesterFilter}>
+            <SelectTrigger className="w-[120px]">
+              <SelectValue placeholder="Semester" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Sem</SelectItem>
+              {[1,2,3,4,5,6,7,8].map(s => (
+                <SelectItem key={s} value={s.toString()}>Sem {s}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {subjects.map((sub) => (
+        {filteredSubjects.map((sub) => (
           <Card 
             key={sub.id} 
             className="border-none shadow-sm hover:shadow-lg transition-all cursor-pointer group active:scale-[0.98]"
@@ -168,7 +200,10 @@ export default function SubjectsManagementPage() {
               <CardTitle className="text-xl font-bold mt-2 group-hover:text-primary transition-colors">{sub.name}</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground">Semester {sub.semester}</p>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Layers className="w-3.5 h-3.5" />
+                Semester {sub.semester}
+              </div>
               <div className="mt-4 pt-4 border-t flex justify-between items-center">
                 <Button variant="ghost" size="sm" className="text-xs h-8 hover:bg-primary/5">
                   <Eye className="w-3.5 h-3.5 mr-1.5" />
@@ -179,6 +214,12 @@ export default function SubjectsManagementPage() {
             </CardContent>
           </Card>
         ))}
+        {filteredSubjects.length === 0 && (
+          <div className="col-span-full py-20 text-center border-2 border-dashed rounded-2xl bg-muted/20">
+            <BookOpen className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-20" />
+            <p className="text-muted-foreground">No subjects found for the selected filters.</p>
+          </div>
+        )}
       </div>
 
       {/* Subject Details Dialog */}
@@ -188,7 +229,7 @@ export default function SubjectsManagementPage() {
             <>
               <DialogHeader>
                 <DialogTitle>{selectedSubject.name}</DialogTitle>
-                <p className="text-sm text-muted-foreground">{selectedSubject.code} &bull; {selectedSubject.faculty}</p>
+                <p className="text-sm text-muted-foreground">{selectedSubject.code} &bull; {selectedSubject.faculty} &bull; Semester {selectedSubject.semester}</p>
               </DialogHeader>
               <div className="space-y-6 py-4">
                 <div className="grid grid-cols-2 gap-4">

@@ -12,15 +12,41 @@ import {
   CheckCircle2, 
   Clock,
   Sparkles,
-  QrCode
+  QrCode,
+  Plus,
+  Calendar as CalendarIcon
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogTrigger,
+  DialogFooter
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 
+interface ScheduledClass {
+  startTime: string;
+  endTime: string;
+  subject: string;
+  room: string;
+}
+
 export default function DashboardHome() {
   const [user, setUser] = useState<User | null>(null);
+  const [scheduledClasses, setScheduledClasses] = useState<ScheduledClass[]>([
+    { startTime: "09:00 AM", endTime: "10:30 AM", subject: "Database Systems", room: "L-202" },
+    { startTime: "11:30 AM", endTime: "01:00 PM", subject: "Object Oriented Programming", room: "L-101" }
+  ]);
+  const [newClass, setNewClass] = useState({ start: "", end: "", subject: "", room: "" });
+  const [isAddClassOpen, setIsAddClassOpen] = useState(false);
+  
   const router = useRouter();
 
   useEffect(() => {
@@ -28,6 +54,18 @@ export default function DashboardHome() {
   }, []);
 
   if (!user) return null;
+
+  const handleAddClass = () => {
+    if (!newClass.start || !newClass.subject) return;
+    setScheduledClasses([...scheduledClasses, {
+      startTime: newClass.start,
+      endTime: newClass.end,
+      subject: newClass.subject,
+      room: newClass.room || "TBD"
+    }]);
+    setNewClass({ start: "", end: "", subject: "", room: "" });
+    setIsAddClassOpen(false);
+  };
 
   const container = {
     hidden: { opacity: 0 },
@@ -124,23 +162,79 @@ export default function DashboardHome() {
         </Card>
         
         <Card className="border-none shadow-sm">
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Upcoming Classes</CardTitle>
+            <Dialog open={isAddClassOpen} onOpenChange={setIsAddClassOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm" variant="outline" className="h-8 gap-1">
+                  <Plus className="w-3.5 h-3.5" />
+                  Schedule
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Schedule Today's Class</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label>Subject Name</Label>
+                    <Input 
+                      placeholder="e.g. Cloud Computing" 
+                      value={newClass.subject} 
+                      onChange={(e) => setNewClass({...newClass, subject: e.target.value})}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Start Time</Label>
+                      <Input 
+                        type="text" 
+                        placeholder="09:00 AM" 
+                        value={newClass.start} 
+                        onChange={(e) => setNewClass({...newClass, start: e.target.value})}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>End Time</Label>
+                      <Input 
+                        type="text" 
+                        placeholder="10:30 AM" 
+                        value={newClass.end} 
+                        onChange={(e) => setNewClass({...newClass, end: e.target.value})}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Room No.</Label>
+                    <Input 
+                      placeholder="e.g. L-201" 
+                      value={newClass.room} 
+                      onChange={(e) => setNewClass({...newClass, room: e.target.value})}
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button onClick={handleAddClass} className="w-full">Save Schedule</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {[
-                { time: "09:00 AM", subject: "Database Systems", room: "L-202" },
-                { time: "11:30 AM", subject: "Object Oriented Programming", room: "L-101" }
-              ].map((cls, idx) => (
+              {scheduledClasses.map((cls, idx) => (
                 <div key={idx} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/30 transition-colors group">
                   <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded bg-primary/10 flex items-center justify-center text-primary font-bold">
-                      {cls.time.split(':')[0]}
+                    <div className="w-12 h-12 rounded bg-primary/10 flex flex-col items-center justify-center text-primary leading-none">
+                      <Clock className="w-3.5 h-3.5 mb-1" />
+                      <span className="text-xs font-bold">{cls.startTime.split(' ')[0]}</span>
                     </div>
                     <div>
                       <p className="font-semibold">{cls.subject}</p>
-                      <p className="text-xs text-muted-foreground">{cls.room}</p>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <span className="bg-muted px-1.5 py-0.5 rounded">{cls.room}</span>
+                        <span>•</span>
+                        <span>{cls.startTime} - {cls.endTime}</span>
+                      </div>
                     </div>
                   </div>
                   <Button size="sm" variant="outline" className="opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => router.push('/dashboard/teacher/qr')}>
@@ -148,6 +242,12 @@ export default function DashboardHome() {
                   </Button>
                 </div>
               ))}
+              {scheduledClasses.length === 0 && (
+                <div className="text-center py-8 text-muted-foreground">
+                  <CalendarIcon className="w-12 h-12 mx-auto mb-2 opacity-20" />
+                  <p>No classes scheduled for today.</p>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

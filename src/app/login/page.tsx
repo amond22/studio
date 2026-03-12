@@ -8,13 +8,15 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { login, getCurrentUser, getStoredUsers } from "@/lib/auth-store";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { login, getCurrentUser, getStoredUsers, UserRole } from "@/lib/auth-store";
 import { useToast } from "@/hooks/use-toast";
-import { KeyRound, User as UserIcon, Building2, Info, ArrowRight, Loader2 } from "lucide-react";
+import { KeyRound, User as UserIcon, Building2, Info, ArrowRight, Loader2, ShieldCheck, GraduationCap, Users } from "lucide-react";
 
 export default function LoginPage() {
   const [userId, setUserId] = useState("");
   const [password, setPassword] = useState("");
+  const [role, setRole] = useState<UserRole>("Student");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
@@ -33,20 +35,19 @@ export default function LoginPage() {
 
     await new Promise((resolve) => setTimeout(resolve, 800));
 
-    // Universal Login Logic: Automatically detects role based on ID/PW
-    const user = login(userId, password);
+    const user = login(userId, password, role);
 
     if (user) {
       toast({
         title: "Access Granted",
-        description: `Welcome back, ${user.name}. Logged in as ${user.role}.`,
+        description: `Welcome back, ${user.name}.`,
       });
       router.push("/dashboard");
     } else {
       toast({
         variant: "destructive",
         title: "Authentication Failed",
-        description: "Invalid ID or Password. Note: Password is case-sensitive.",
+        description: `Invalid ID or Password for the ${role} portal.`,
       });
     }
     setLoading(false);
@@ -64,47 +65,67 @@ export default function LoginPage() {
           <div className="inline-flex items-center justify-center p-4 bg-primary/10 rounded-2xl mb-4 shadow-inner">
             <Building2 className="w-10 h-10 text-primary" />
           </div>
-          <h1 className="text-3xl font-headline font-bold text-primary">EduScan Portal</h1>
+          <h1 className="text-3xl font-headline font-bold text-primary tracking-tight">EduScan Portal</h1>
           <p className="text-muted-foreground mt-2 font-medium text-sm">Balmiki Lincoln College Management</p>
         </div>
 
-        <Card className="border-none shadow-2xl bg-white/90 backdrop-blur-md">
+        <Card className="border-none shadow-2xl bg-white/90 backdrop-blur-md overflow-hidden">
+          <CardHeader className="pb-0">
+            <CardTitle className="text-xl font-bold">Secure Sign In</CardTitle>
+            <CardDescription>Select your role and enter credentials</CardDescription>
+          </CardHeader>
+          
           <form onSubmit={handleLogin}>
-            <CardHeader>
-              <CardTitle className="text-xl font-bold">Secure Sign In</CardTitle>
-              <CardDescription>Enter your official ID and Password</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="userId">User ID</Label>
-                <div className="relative">
-                  <UserIcon className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="userId"
-                    placeholder="Enter unique ID"
-                    className="pl-10 h-11 bg-white border-muted"
-                    value={userId}
-                    onChange={(e) => setUserId(e.target.value)}
-                    required
-                    autoComplete="username"
-                  />
-                </div>
-              </div>
+            <CardContent className="space-y-6 pt-6">
+              <Tabs value={role} onValueChange={(v) => setRole(v as UserRole)} className="w-full">
+                <TabsList className="grid w-full grid-cols-3 h-12 bg-muted/50 p-1">
+                  <TabsTrigger value="Student" className="gap-2 text-xs font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                    <Users className="w-3.5 h-3.5" />
+                    Student
+                  </TabsTrigger>
+                  <TabsTrigger value="Teacher" className="gap-2 text-xs font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                    <GraduationCap className="w-3.5 h-3.5" />
+                    Teacher
+                  </TabsTrigger>
+                  <TabsTrigger value="Admin" className="gap-2 text-xs font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                    Admin
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
 
-              <div className="space-y-2">
-                <Label htmlFor="password">Security Password</Label>
-                <div className="relative">
-                  <KeyRound className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="Enter Password"
-                    className="pl-10 h-11 bg-white border-muted"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    autoComplete="current-password"
-                  />
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="userId">{role} ID</Label>
+                  <div className="relative">
+                    <UserIcon className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="userId"
+                      placeholder={`Enter your ${role.toLowerCase()} ID`}
+                      className="pl-10 h-11 bg-white border-muted focus:ring-primary"
+                      value={userId}
+                      onChange={(e) => setUserId(e.target.value)}
+                      required
+                      autoComplete="username"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="password">Security Password</Label>
+                  <div className="relative">
+                    <KeyRound className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="password"
+                      type="password"
+                      placeholder="Enter Password"
+                      className="pl-10 h-11 bg-white border-muted focus:ring-primary"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      autoComplete="current-password"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -114,13 +135,14 @@ export default function LoginPage() {
                   <p className="font-bold text-primary text-[10px] uppercase tracking-widest">Authentication Tips</p>
                 </div>
                 <ul className="text-[11px] text-muted-foreground space-y-1 ml-1">
-                  <li>• Role is detected automatically based on your ID.</li>
-                  <li>• User IDs are case-insensitive.</li>
-                  <li className="font-bold text-foreground underline decoration-primary/30">• Passwords are case-sensitive.</li>
+                  <li>• You are currently logging into the <strong>{role}</strong> dashboard.</li>
+                  <li>• Use the ID provided by the administration office.</li>
+                  <li>• Passwords are case-sensitive.</li>
                 </ul>
               </div>
             </CardContent>
-            <CardFooter>
+            
+            <CardFooter className="pb-8">
               <Button 
                 type="submit" 
                 className="w-full button-hover bg-primary h-12 text-base font-bold shadow-lg shadow-primary/20" 
@@ -129,11 +151,11 @@ export default function LoginPage() {
                 {loading ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Authenticating...
+                    Verifying {role} Access...
                   </>
                 ) : (
                   <>
-                    Sign In to Dashboard
+                    Sign In to {role} Panel
                     <ArrowRight className="w-4 h-4 ml-2" />
                   </>
                 )}

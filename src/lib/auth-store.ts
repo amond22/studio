@@ -12,6 +12,9 @@ export interface User {
   faculty?: string;
   semester?: number;
   photo: string;
+  lcNo?: string;
+  address?: string;
+  attendanceRate?: number;
 }
 
 const DEFAULT_USERS: User[] = [
@@ -39,7 +42,10 @@ const DEFAULT_USERS: User[] = [
     password: "student-password",
     faculty: "BIT",
     semester: 4,
-    photo: "https://picsum.photos/seed/student/150/150"
+    photo: "https://picsum.photos/seed/student/150/150",
+    lcNo: "LC-2024-001",
+    address: "Bharatpur-10, Chitwan",
+    attendanceRate: 92
   }
 ];
 

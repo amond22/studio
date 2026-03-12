@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Users, Plus, Mail, Shield, MoreHorizontal, UserPlus, GraduationCap, Search, FileBarChart, Filter, ChevronRight, Eye } from "lucide-react";
+import { Users, Plus, Mail, Shield, UserPlus, GraduationCap, Search, FileBarChart, Filter, ChevronRight, Eye, MapPin, Hash, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -28,6 +28,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { User, getStoredUsers, saveUsers, UserRole } from "@/lib/auth-store";
 import { useToast } from "@/hooks/use-toast";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export default function UsersManagementPage() {
   const [users, setUsers] = useState<User[]>([]);
@@ -47,6 +48,8 @@ export default function UsersManagementPage() {
   const [newFaculty, setNewFaculty] = useState("BIT");
   const [newSemester, setNewSemester] = useState("1");
   const [newPassword, setNewPassword] = useState("");
+  const [newLcNo, setNewLcNo] = useState("");
+  const [newAddress, setNewAddress] = useState("");
 
   useEffect(() => {
     setUsers(getStoredUsers());
@@ -54,7 +57,7 @@ export default function UsersManagementPage() {
 
   const handleAddUser = () => {
     if (!newUserId || !newName || !newEmail || !newPassword) {
-      toast({ variant: "destructive", title: "Error", description: "All fields are required" });
+      toast({ variant: "destructive", title: "Error", description: "All basic fields are required" });
       return;
     }
 
@@ -66,6 +69,9 @@ export default function UsersManagementPage() {
       password: newPassword,
       faculty: newRole === 'Student' ? newFaculty : undefined,
       semester: newRole === 'Student' ? parseInt(newSemester) : undefined,
+      lcNo: newRole === 'Student' ? newLcNo : undefined,
+      address: newRole === 'Student' ? newAddress : undefined,
+      attendanceRate: newRole === 'Student' ? 100 : undefined,
       photo: `https://picsum.photos/seed/${newUserId}/150/150`
     };
 
@@ -81,6 +87,8 @@ export default function UsersManagementPage() {
     setNewName("");
     setNewEmail("");
     setNewPassword("");
+    setNewLcNo("");
+    setNewAddress("");
   };
 
   const filteredUsers = users.filter(u => {
@@ -106,77 +114,96 @@ export default function UsersManagementPage() {
               Add User
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="sm:max-w-lg">
             <DialogHeader>
               <DialogTitle>Register New User</DialogTitle>
+              <DialogDescription>Create a new account with detailed identity information.</DialogDescription>
             </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Account ID</Label>
-                  <Input placeholder="jdoe" value={newUserId} onChange={(e) => setNewUserId(e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Role</Label>
-                  <Select value={newRole} onValueChange={(v) => setNewRole(v as UserRole)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Admin">Admin</SelectItem>
-                      <SelectItem value="Teacher">Teacher</SelectItem>
-                      <SelectItem value="Student">Student</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {newRole === 'Student' && (
+            <ScrollArea className="max-h-[70vh] pr-4">
+              <div className="space-y-6 py-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Faculty</Label>
-                    <Select value={newFaculty} onValueChange={setNewFaculty}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="BIT">BIT</SelectItem>
-                        <SelectItem value="BBA">BBA</SelectItem>
-                        <SelectItem value="BHM">BHM</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <Label>Account ID</Label>
+                    <Input placeholder="e.g., student01" value={newUserId} onChange={(e) => setNewUserId(e.target.value)} />
                   </div>
                   <div className="space-y-2">
-                    <Label>Semester</Label>
-                    <Select value={newSemester} onValueChange={setNewSemester}>
+                    <Label>Role</Label>
+                    <Select value={newRole} onValueChange={(v) => setNewRole(v as UserRole)}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {[1,2,3,4,5,6,7,8].map(s => (
-                          <SelectItem key={s} value={s.toString()}>Sem {s}</SelectItem>
-                        ))}
+                        <SelectItem value="Admin">Admin</SelectItem>
+                        <SelectItem value="Teacher">Teacher</SelectItem>
+                        <SelectItem value="Student">Student</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
-              )}
 
-              <div className="space-y-2">
-                <Label>Full Name</Label>
-                <Input placeholder="John Doe" value={newName} onChange={(e) => setNewName(e.target.value)} />
+                {newRole === 'Student' && (
+                  <div className="space-y-4 pt-4 border-t">
+                    <p className="text-xs font-bold uppercase text-primary tracking-widest">Academic Details</p>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Faculty</Label>
+                        <Select value={newFaculty} onValueChange={setNewFaculty}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="BIT">BIT</SelectItem>
+                            <SelectItem value="BBA">BBA</SelectItem>
+                            <SelectItem value="BHM">BHM</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Semester</Label>
+                        <Select value={newSemester} onValueChange={setNewSemester}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {[1,2,3,4,5,6,7,8].map(s => (
+                              <SelectItem key={s} value={s.toString()}>Sem {s}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Class LC Number (License/Cert)</Label>
+                      <Input placeholder="LC-2024-XXXX" value={newLcNo} onChange={(e) => setNewLcNo(e.target.value)} />
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-4 pt-4 border-t">
+                  <p className="text-xs font-bold uppercase text-primary tracking-widest">Personal Information</p>
+                  <div className="space-y-2">
+                    <Label>Full Name</Label>
+                    <Input placeholder="John Doe" value={newName} onChange={(e) => setNewName(e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Email</Label>
+                    <Input type="email" placeholder="john@balmiki.edu" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} />
+                  </div>
+                  {newRole === 'Student' && (
+                    <div className="space-y-2">
+                      <Label>Home Address</Label>
+                      <Input placeholder="City, Street Name, House No." value={newAddress} onChange={(e) => setNewAddress(e.target.value)} />
+                    </div>
+                  )}
+                  <div className="space-y-2">
+                    <Label>Security Password</Label>
+                    <Input type="password" placeholder="Min 8 characters" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
+                  </div>
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label>Email</Label>
-                <Input type="email" placeholder="john@balmiki.edu" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label>Password</Label>
-                <Input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
-              </div>
-            </div>
+            </ScrollArea>
             <DialogFooter>
-              <Button className="w-full" onClick={handleAddUser}>Create Account</Button>
+              <Button className="w-full" onClick={handleAddUser}>Complete Registration</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -186,7 +213,7 @@ export default function UsersManagementPage() {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
           <Input 
-            placeholder="Search by name or ID..." 
+            placeholder="Search by name, ID or LC No..." 
             className="pl-10" 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -227,11 +254,11 @@ export default function UsersManagementPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name & ID</TableHead>
+                  <TableHead>Identity & ID</TableHead>
                   <TableHead>Email</TableHead>
-                  <TableHead>Academic Info</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead>Academic Status</TableHead>
+                  <TableHead>Attendance</TableHead>
+                  <TableHead className="text-right">Audit</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -246,17 +273,20 @@ export default function UsersManagementPage() {
                   >
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-muted overflow-hidden shrink-0 border border-primary/10">
+                        <div className="w-10 h-10 rounded-full bg-muted overflow-hidden shrink-0 border border-primary/10">
                           <img src={user.photo} alt="" className="w-full h-full object-cover" />
                         </div>
                         <div>
-                          <p className="group-hover:text-primary transition-colors">{user.name}</p>
-                          <p className="text-[10px] text-muted-foreground font-mono uppercase">{user.id}</p>
+                          <p className="font-bold group-hover:text-primary transition-colors">{user.name}</p>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] text-muted-foreground font-mono uppercase">{user.id}</span>
+                            {user.lcNo && <Badge variant="outline" className="text-[8px] h-4 px-1.5">{user.lcNo}</Badge>}
+                          </div>
                         </div>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 text-sm">
                         <Mail className="w-3 h-3 text-muted-foreground" />
                         {user.email}
                       </div>
@@ -271,14 +301,21 @@ export default function UsersManagementPage() {
                           <span className="text-xs text-muted-foreground ml-1">Semester {user.semester}</span>
                         </div>
                       ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
+                        <Badge variant="outline" className="flex w-fit items-center gap-1">
+                          <Shield className="w-3 h-3" />
+                          {user.role}
+                        </Badge>
                       )}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline" className="flex w-fit items-center gap-1">
-                        <Shield className="w-3 h-3" />
-                        {user.role}
-                      </Badge>
+                      {user.role === 'Student' ? (
+                        <div className="flex items-center gap-2">
+                          <BarChart3 className="w-3.5 h-3.5 text-primary" />
+                          <span className="text-sm font-bold">{user.attendanceRate || 0}%</span>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
                     </TableCell>
                     <TableCell className="text-right">
                       <Button variant="ghost" size="icon" className="group-hover:bg-primary/10 transition-all">
@@ -305,9 +342,9 @@ export default function UsersManagementPage() {
           {selectedUser && (
             <>
               <DialogHeader>
-                <DialogTitle>User Profile Detail</DialogTitle>
+                <DialogTitle>User Identity Card</DialogTitle>
                 <DialogDescription>
-                  Full system records for account ID: {selectedUser.id}
+                  Full system records for account: {selectedUser.name}
                 </DialogDescription>
               </DialogHeader>
               <div className="flex flex-col items-center gap-6 py-4">
@@ -318,34 +355,55 @@ export default function UsersManagementPage() {
                   <h3 className="text-2xl font-bold text-primary">{selectedUser.name}</h3>
                   <Badge variant="outline" className="mt-1">{selectedUser.role}</Badge>
                 </div>
-                <div className="w-full grid grid-cols-2 gap-4">
-                  <div className="p-3 bg-muted rounded-xl">
-                    <p className="text-[10px] font-bold uppercase text-muted-foreground mb-1">Email</p>
-                    <p className="text-sm font-medium truncate">{selectedUser.email}</p>
+                
+                <div className="w-full space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="p-3 bg-muted rounded-xl">
+                      <p className="text-[10px] font-bold uppercase text-muted-foreground mb-1 flex items-center gap-1">
+                        <Hash className="w-3 h-3" /> Account ID
+                      </p>
+                      <p className="text-sm font-medium font-mono uppercase">{selectedUser.id}</p>
+                    </div>
+                    <div className="p-3 bg-muted rounded-xl">
+                      <p className="text-[10px] font-bold uppercase text-muted-foreground mb-1 flex items-center gap-1">
+                        <BarChart3 className="w-3 h-3" /> Attendance
+                      </p>
+                      <p className="text-sm font-bold text-primary">{selectedUser.attendanceRate || 0}%</p>
+                    </div>
                   </div>
-                  <div className="p-3 bg-muted rounded-xl">
-                    <p className="text-[10px] font-bold uppercase text-muted-foreground mb-1">Account ID</p>
-                    <p className="text-sm font-medium font-mono uppercase">{selectedUser.id}</p>
-                  </div>
-                  {selectedUser.faculty && (
+
+                  {selectedUser.role === 'Student' && (
                     <>
-                      <div className="p-3 bg-muted rounded-xl">
-                        <p className="text-[10px] font-bold uppercase text-muted-foreground mb-1">Faculty</p>
-                        <p className="text-sm font-medium">{selectedUser.faculty}</p>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="p-3 bg-muted rounded-xl">
+                          <p className="text-[10px] font-bold uppercase text-muted-foreground mb-1">LC Number</p>
+                          <p className="text-sm font-medium text-primary">{selectedUser.lcNo || 'Not Set'}</p>
+                        </div>
+                        <div className="p-3 bg-muted rounded-xl">
+                          <p className="text-[10px] font-bold uppercase text-muted-foreground mb-1">Faculty & Sem</p>
+                          <p className="text-sm font-medium">{selectedUser.faculty} • Sem {selectedUser.semester}</p>
+                        </div>
                       </div>
                       <div className="p-3 bg-muted rounded-xl">
-                        <p className="text-[10px] font-bold uppercase text-muted-foreground mb-1">Semester</p>
-                        <p className="text-sm font-medium">{selectedUser.semester}</p>
+                        <p className="text-[10px] font-bold uppercase text-muted-foreground mb-1 flex items-center gap-1">
+                          <MapPin className="w-3 h-3" /> Address
+                        </p>
+                        <p className="text-sm font-medium">{selectedUser.address || 'Address not recorded'}</p>
                       </div>
                     </>
                   )}
+
+                  <div className="p-3 bg-muted rounded-xl">
+                    <p className="text-[10px] font-bold uppercase text-muted-foreground mb-1">Email Address</p>
+                    <p className="text-sm font-medium truncate">{selectedUser.email}</p>
+                  </div>
                 </div>
               </div>
               <DialogFooter className="gap-2 sm:gap-0">
                 <Button variant="outline" className="w-full" onClick={() => setDetailOpen(false)}>Close</Button>
                 <Button className="w-full">
                   <FileBarChart className="w-4 h-4 mr-2" />
-                  Attendance Audit
+                  Detailed Audit
                 </Button>
               </DialogFooter>
             </>

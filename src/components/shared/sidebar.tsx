@@ -31,10 +31,13 @@ export function AppSidebar({ user }: SidebarProps) {
   const [logoUrl, setLogoUrl] = useState("https://picsum.photos/seed/edu1/200/200");
 
   useEffect(() => {
+    // Initial load
     setLogoUrl(getCollegeLogo());
     
     // Listen for storage changes to update logo instantly
-    const handleStorage = () => setLogoUrl(getCollegeLogo());
+    const handleStorage = () => {
+      setLogoUrl(getCollegeLogo());
+    };
     window.addEventListener('storage', handleStorage);
     return () => window.removeEventListener('storage', handleStorage);
   }, []);

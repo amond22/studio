@@ -51,6 +51,8 @@ export interface Faculty {
   subjects: number;
 }
 
+const DEFAULT_LOGO = "https://picsum.photos/seed/edu1/200/200";
+
 const DEFAULT_USERS: User[] = [
   {
     id: "admin",
@@ -96,9 +98,11 @@ const DEFAULT_SUBJECTS: Subject[] = [
   { id: "3", code: "BBA-201", name: "Microeconomics", faculty: "BBA", semester: 3, teacherName: "Unassigned" },
 ];
 
-// --- USER PERSISTENCE ---
+// --- STORAGE UTILS ---
+const isClient = typeof window !== 'undefined';
+
 export const getStoredUsers = (): User[] => {
-  if (typeof window === 'undefined') return DEFAULT_USERS;
+  if (!isClient) return DEFAULT_USERS;
   const stored = localStorage.getItem('eduscan_users');
   if (!stored) {
     localStorage.setItem('eduscan_users', JSON.stringify(DEFAULT_USERS));
@@ -108,15 +112,14 @@ export const getStoredUsers = (): User[] => {
 };
 
 export const saveUsers = (users: User[]) => {
-  if (typeof window !== 'undefined') {
+  if (isClient) {
     localStorage.setItem('eduscan_users', JSON.stringify(users));
     window.dispatchEvent(new Event('storage'));
   }
 };
 
-// --- FACULTY PERSISTENCE ---
 export const getStoredFaculties = (): Faculty[] => {
-  if (typeof window === 'undefined') return DEFAULT_FACULTIES;
+  if (!isClient) return DEFAULT_FACULTIES;
   const stored = localStorage.getItem('eduscan_faculties');
   if (!stored) {
     localStorage.setItem('eduscan_faculties', JSON.stringify(DEFAULT_FACULTIES));
@@ -126,15 +129,14 @@ export const getStoredFaculties = (): Faculty[] => {
 };
 
 export const saveFaculties = (faculties: Faculty[]) => {
-  if (typeof window !== 'undefined') {
+  if (isClient) {
     localStorage.setItem('eduscan_faculties', JSON.stringify(faculties));
     window.dispatchEvent(new Event('storage'));
   }
 };
 
-// --- SUBJECT PERSISTENCE ---
 export const getStoredSubjects = (): Subject[] => {
-  if (typeof window === 'undefined') return DEFAULT_SUBJECTS;
+  if (!isClient) return DEFAULT_SUBJECTS;
   const stored = localStorage.getItem('eduscan_subjects');
   if (!stored) {
     localStorage.setItem('eduscan_subjects', JSON.stringify(DEFAULT_SUBJECTS));
@@ -144,34 +146,32 @@ export const getStoredSubjects = (): Subject[] => {
 };
 
 export const saveSubjects = (subjects: Subject[]) => {
-  if (typeof window !== 'undefined') {
+  if (isClient) {
     localStorage.setItem('eduscan_subjects', JSON.stringify(subjects));
     window.dispatchEvent(new Event('storage'));
   }
 };
 
-// --- LOGO PERSISTENCE ---
 export const getCollegeLogo = (): string => {
-  if (typeof window === 'undefined') return "https://picsum.photos/seed/edu1/200/200";
-  return localStorage.getItem('eduscan_college_logo') || "https://picsum.photos/seed/edu1/200/200";
+  if (!isClient) return DEFAULT_LOGO;
+  return localStorage.getItem('eduscan_college_logo') || DEFAULT_LOGO;
 };
 
 export const setCollegeLogo = (url: string) => {
-  if (typeof window !== 'undefined') {
+  if (isClient) {
     localStorage.setItem('eduscan_college_logo', url);
     window.dispatchEvent(new Event('storage'));
   }
 };
 
-// --- ATTENDANCE PERSISTENCE ---
 export const getAttendanceRecords = (): AttendanceRecord[] => {
-  if (typeof window === 'undefined') return [];
+  if (!isClient) return [];
   const stored = localStorage.getItem('eduscan_attendance_records');
   return stored ? JSON.parse(stored) : [];
 };
 
 export const saveAttendanceRecords = (records: AttendanceRecord[]) => {
-  if (typeof window !== 'undefined') {
+  if (isClient) {
     localStorage.setItem('eduscan_attendance_records', JSON.stringify(records));
     window.dispatchEvent(new Event('storage'));
   }
@@ -260,16 +260,16 @@ export const recordScanAttendance = (data: {
 export const login = (userId: string, passwordInput: string, role: UserRole): User | null => {
   const users = getStoredUsers();
   const cleanId = userId.trim().toLowerCase();
-  const cleanPw = passwordInput.trim().toLowerCase();
+  const cleanPw = passwordInput.trim(); // Password remains case-sensitive
   
   const user = users.find(u => 
     u.id.toLowerCase() === cleanId && 
-    (u.password || "").toLowerCase() === cleanPw && 
+    (u.password || "") === cleanPw && 
     u.role === role
   );
 
   if (user) {
-    if (typeof window !== 'undefined') {
+    if (isClient) {
       localStorage.setItem('user_session', JSON.stringify(user));
     }
     return user;
@@ -278,13 +278,13 @@ export const login = (userId: string, passwordInput: string, role: UserRole): Us
 };
 
 export const getCurrentUser = (): User | null => {
-  if (typeof window === 'undefined') return null;
+  if (!isClient) return null;
   const session = localStorage.getItem('user_session');
   return session ? JSON.parse(session) : null;
 };
 
 export const logout = () => {
-  if (typeof window !== 'undefined') {
+  if (isClient) {
     localStorage.removeItem('user_session');
   }
 };

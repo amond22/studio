@@ -51,6 +51,13 @@ export interface Faculty {
   subjects: number;
 }
 
+export interface NetworkSettings {
+  restrictionEnabled: boolean;
+  wifiSsid: string;
+  ipRangeStart: string;
+  ipRangeEnd: string;
+}
+
 const DEFAULT_LOGO = "https://picsum.photos/seed/edu1/200/200";
 
 const DEFAULT_USERS: User[] = [
@@ -97,6 +104,13 @@ const DEFAULT_SUBJECTS: Subject[] = [
   { id: "2", code: "BIT-302", name: "Database Systems", faculty: "BIT", semester: 5, teacherName: "Dr. Robert Smith", teacherId: "teacher" },
   { id: "3", code: "BBA-201", name: "Microeconomics", faculty: "BBA", semester: 3, teacherName: "Unassigned" },
 ];
+
+const DEFAULT_NETWORK_SETTINGS: NetworkSettings = {
+  restrictionEnabled: true,
+  wifiSsid: "Balmiki_Lincoln_WiFi",
+  ipRangeStart: "192.168.1.1",
+  ipRangeEnd: "192.168.1.255"
+};
 
 // --- STORAGE UTILS ---
 const isClient = typeof window !== 'undefined';
@@ -164,10 +178,31 @@ export const setCollegeLogo = (url: string) => {
   }
 };
 
+export const getNetworkSettings = (): NetworkSettings => {
+  if (!isClient) return DEFAULT_NETWORK_SETTINGS;
+  const stored = localStorage.getItem('eduscan_network_settings');
+  try {
+    return stored ? JSON.parse(stored) : DEFAULT_NETWORK_SETTINGS;
+  } catch (e) {
+    return DEFAULT_NETWORK_SETTINGS;
+  }
+};
+
+export const saveNetworkSettings = (settings: NetworkSettings) => {
+  if (isClient) {
+    localStorage.setItem('eduscan_network_settings', JSON.stringify(settings));
+    window.dispatchEvent(new Event('storage'));
+  }
+};
+
 export const getAttendanceRecords = (): AttendanceRecord[] => {
   if (!isClient) return [];
   const stored = localStorage.getItem('eduscan_attendance_records');
-  return stored ? JSON.parse(stored) : [];
+  try {
+    return stored ? JSON.parse(stored) : [];
+  } catch (e) {
+    return [];
+  }
 };
 
 export const saveAttendanceRecords = (records: AttendanceRecord[]) => {
@@ -244,6 +279,7 @@ export const recordScanAttendance = (data: {
     users[userIdx].attendanceRate = Math.round((presentCount / (totalCount || 1)) * 100);
     saveUsers(users);
     
+    // Update local session if it's the current user
     const session = localStorage.getItem('user_session');
     if (session) {
       const parsedSession = JSON.parse(session);
@@ -260,7 +296,7 @@ export const recordScanAttendance = (data: {
 export const login = (userId: string, passwordInput: string, role: UserRole): User | null => {
   const users = getStoredUsers();
   const cleanId = userId.trim().toLowerCase();
-  const cleanPw = passwordInput.trim(); // Password remains case-sensitive
+  const cleanPw = passwordInput.trim(); 
   
   const user = users.find(u => 
     u.id.toLowerCase() === cleanId && 

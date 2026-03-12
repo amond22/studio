@@ -8,18 +8,14 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { UserRole, login, getCurrentUser, getStoredUsers } from "@/lib/auth-store";
+import { login, getCurrentUser, getStoredUsers } from "@/lib/auth-store";
 import { useToast } from "@/hooks/use-toast";
-import { KeyRound, User as UserIcon, Building2, Info, ArrowRight, Loader2, AlertCircle } from "lucide-react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { KeyRound, User as UserIcon, Building2, Info, ArrowRight, Loader2 } from "lucide-react";
 
 export default function LoginPage() {
-  const [role, setRole] = useState<UserRole>("Student");
   const [userId, setUserId] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [showHelp, setShowHelp] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
 
@@ -36,25 +32,24 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setShowHelp(false);
 
     // Artificial delay for feedback
     await new Promise((resolve) => setTimeout(resolve, 800));
 
-    const user = login(userId, role, password);
+    // Universal Login: Role selection is no longer required
+    const user = login(userId, password);
 
     if (user) {
       toast({
-        title: "Welcome Back",
-        description: `Successfully logged in as ${user.name}`,
+        title: "Access Granted",
+        description: `Welcome back, ${user.name}. Logged in as ${user.role}.`,
       });
       router.push("/dashboard");
     } else {
-      setShowHelp(true);
       toast({
         variant: "destructive",
-        title: "Access Denied",
-        description: "Invalid credentials. Please verify your ID, Password, and Role.",
+        title: "Authentication Failed",
+        description: "Please check your ID and Password. Use 'admin' / 'admin-password' for testing.",
       });
     }
     setLoading(false);
@@ -80,30 +75,16 @@ export default function LoginPage() {
           <form onSubmit={handleLogin}>
             <CardHeader>
               <CardTitle className="text-xl font-bold">Secure Sign In</CardTitle>
-              <CardDescription>Enter your official credentials</CardDescription>
+              <CardDescription>Enter your official ID and Password</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="role">Account Type</Label>
-                <Select value={role} onValueChange={(val) => setRole(val as UserRole)}>
-                  <SelectTrigger className="bg-white border-muted h-11">
-                    <SelectValue placeholder="Select Role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Admin">System Administrator</SelectItem>
-                    <SelectItem value="Teacher">Faculty / Teacher</SelectItem>
-                    <SelectItem value="Student">Registered Student</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
               <div className="space-y-2">
                 <Label htmlFor="userId">User ID</Label>
                 <div className="relative">
                   <UserIcon className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="userId"
-                    placeholder="Enter unique ID"
+                    placeholder="Enter unique ID (e.g., admin)"
                     className="pl-10 h-11 bg-white border-muted"
                     value={userId}
                     onChange={(e) => setUserId(e.target.value)}
@@ -130,27 +111,13 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              {showHelp && (
-                <Alert variant="destructive" className="bg-destructive/5 text-destructive border-destructive/20">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertTitle className="text-xs font-bold">Authentication Tips</AlertTitle>
-                  <AlertDescription className="text-[11px] leading-relaxed">
-                    1. Ensure the <strong>Account Type</strong> matches the user's role.<br/>
-                    2. User IDs are case-insensitive (e.g., 'admin' is same as 'Admin').<br/>
-                    3. Passwords are <strong>case-sensitive</strong>.
-                  </AlertDescription>
-                </Alert>
-              )}
-
               <div className="p-4 bg-primary/5 rounded-xl border border-primary/10">
                 <div className="flex items-center gap-2 mb-2">
                   <Info className="w-4 h-4 text-primary" />
-                  <p className="font-bold text-primary text-[10px] uppercase tracking-widest">Login Help</p>
+                  <p className="font-bold text-primary text-[10px] uppercase tracking-widest">Universal Login Active</p>
                 </div>
-                <p className="text-[11px] text-muted-foreground leading-relaxed">
-                  Default Admin: <strong>admin</strong> / <strong>admin-password</strong><br/>
-                  Default Teacher: <strong>teacher</strong> / <strong>teacher-password</strong><br/>
-                  Default Student: <strong>student</strong> / <strong>student-password</strong>
+                <p className="text-[11px] text-muted-foreground leading-relaxed italic">
+                  Roles are detected automatically. Passwords are case-insensitive for easier testing.
                 </p>
               </div>
             </CardContent>

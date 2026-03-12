@@ -121,15 +121,15 @@ export const markManualAttendance = (records: Omit<AttendanceRecord, 'id'>[]) =>
   saveUsers(users);
 };
 
-export const login = (userId: string, role: UserRole, passwordInput: string): User | null => {
+export const login = (userId: string, passwordInput: string): User | null => {
   const users = getStoredUsers();
   const cleanId = userId.trim().toLowerCase();
-  const cleanPass = passwordInput.trim();
+  const cleanPass = passwordInput.trim().toLowerCase();
   
+  // Universal Login: Find any user where ID and Password match (case-insensitive for both)
   const user = users.find(u => 
     u.id.toLowerCase() === cleanId && 
-    u.role === role && 
-    (u.password === cleanPass)
+    (u.password?.toLowerCase() === cleanPass)
   );
 
   if (user) {

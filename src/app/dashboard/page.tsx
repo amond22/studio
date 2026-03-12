@@ -10,13 +10,14 @@ import {
   BookOpen, 
   TrendingUp, 
   CheckCircle2, 
-  XCircle,
   Clock,
-  Sparkles
+  Sparkles,
+  QrCode
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
+import { cn } from "@/lib/utils";
 
 export default function DashboardHome() {
   const [user, setUser] = useState<User | null>(null);

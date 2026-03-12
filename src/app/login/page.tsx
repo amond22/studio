@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { login, getCurrentUser, getStoredUsers, UserRole, getCollegeLogo } from "@/lib/auth-store";
 import { useToast } from "@/hooks/use-toast";
-import { KeyRound, User as UserIcon, Building2, Info, ArrowRight, Loader2, ShieldCheck, GraduationCap, Users, AlertCircle } from "lucide-react";
+import { KeyRound, User as UserIcon, Building2, Info, ArrowRight, Loader2, ShieldCheck, GraduationCap, Users, AlertCircle, Sparkles } from "lucide-react";
 
 export default function LoginPage() {
   const [userId, setUserId] = useState("");
@@ -55,6 +55,13 @@ export default function LoginPage() {
       });
     }
     setLoading(false);
+  };
+
+  const autofillAdmin = () => {
+    setUserId("admin");
+    setPassword("admin-password");
+    setRole("Admin");
+    toast({ title: "Admin Credentials Filled", description: "Click 'Sign In' to access the portal." });
   };
 
   return (
@@ -134,17 +141,26 @@ export default function LoginPage() {
               </div>
 
               {showDebug && (
-                <div className="p-4 bg-orange-50 rounded-xl border border-orange-200 animate-in fade-in slide-in-from-top-1">
-                  <div className="flex items-center gap-2 mb-2">
+                <div className="p-4 bg-orange-50 rounded-xl border border-orange-200 animate-in fade-in slide-in-from-top-1 space-y-3">
+                  <div className="flex items-center gap-2">
                     <AlertCircle className="w-4 h-4 text-orange-600" />
-                    <p className="font-bold text-orange-600 text-[10px] uppercase tracking-widest">Authentication Tips</p>
+                    <p className="font-bold text-orange-600 text-[10px] uppercase tracking-widest">Authentication Help</p>
                   </div>
                   <ul className="text-[11px] text-orange-800 space-y-1 ml-1 font-medium">
-                    <li>• Ensure the <strong>Role Tab</strong> matches the user's account.</li>
-                    <li>• User IDs are case-insensitive (e.g., 'admin' is same as 'Admin').</li>
-                    <li>• Passwords are case-sensitive.</li>
-                    <li>• Default: <strong>admin</strong> / <strong>admin-password</strong></li>
+                    <li>• Admin: <strong>admin</strong> / <strong>admin-password</strong></li>
+                    <li>• Teacher: <strong>teacher</strong> / <strong>teacher-password</strong></li>
+                    <li>• IDs are case-insensitive. Passwords are flexible.</li>
                   </ul>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full text-[10px] h-8 font-bold border-orange-200 bg-orange-100 hover:bg-orange-200 text-orange-800"
+                    onClick={autofillAdmin}
+                  >
+                    <Sparkles className="w-3 h-3 mr-2" />
+                    Autofill Admin Credentials
+                  </Button>
                 </div>
               )}
 

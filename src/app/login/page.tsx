@@ -47,7 +47,7 @@ export default function LoginPage() {
       toast({
         variant: "destructive",
         title: "Access Denied",
-        description: "The ID, password, or role provided does not match any registered account.",
+        description: "Invalid credentials. Please verify your ID, Password, and Role.",
       });
     }
     setLoading(false);
@@ -73,7 +73,7 @@ export default function LoginPage() {
           <form onSubmit={handleLogin}>
             <CardHeader>
               <CardTitle className="text-xl font-bold">Secure Sign In</CardTitle>
-              <CardDescription>Enter the credentials provided by the Administrator</CardDescription>
+              <CardDescription>Enter your official credentials</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
@@ -101,6 +101,7 @@ export default function LoginPage() {
                     value={userId}
                     onChange={(e) => setUserId(e.target.value)}
                     required
+                    autoComplete="username"
                   />
                 </div>
               </div>
@@ -117,6 +118,7 @@ export default function LoginPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
+                    autoComplete="current-password"
                   />
                 </div>
               </div>
@@ -124,10 +126,10 @@ export default function LoginPage() {
               <div className="p-4 bg-primary/5 rounded-xl border border-primary/10">
                 <div className="flex items-center gap-2 mb-2">
                   <Info className="w-4 h-4 text-primary" />
-                  <p className="font-bold text-primary text-[10px] uppercase tracking-widest">Demo or Custom Accounts</p>
+                  <p className="font-bold text-primary text-[10px] uppercase tracking-widest">Account Note</p>
                 </div>
                 <p className="text-[11px] text-muted-foreground leading-relaxed">
-                  Use default IDs (<code className="bg-white px-1">admin</code>, <code className="bg-white px-1">teacher</code>, <code className="bg-white px-1">student</code>) or any account created via the Admin panel.
+                  Ensure the correct <strong>Account Type</strong> is selected before signing in. New accounts created in Admin Panel are available immediately.
                 </p>
               </div>
             </CardContent>

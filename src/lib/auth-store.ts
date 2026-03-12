@@ -67,16 +67,23 @@ export const getStoredUsers = (): User[] => {
 export const saveUsers = (users: User[]) => {
   if (typeof window !== 'undefined') {
     localStorage.setItem('eduscan_users', JSON.stringify(users));
+    // Dispatch a storage event to notify other tabs/components
+    window.dispatchEvent(new Event('storage'));
   }
 };
 
 export const login = (userId: string, role: UserRole, passwordInput: string): User | null => {
   const users = getStoredUsers();
+  
+  // Clean inputs for matching
+  const cleanId = userId.trim().toLowerCase();
+  const cleanPass = passwordInput.trim();
+  
   // Case-insensitive ID check, strict role and password check
   const user = users.find(u => 
-    u.id.toLowerCase() === userId.toLowerCase() && 
+    u.id.toLowerCase() === cleanId && 
     u.role === role && 
-    u.password === passwordInput
+    (u.password === cleanPass || !u.password && cleanPass === "")
   );
 
   if (user) {

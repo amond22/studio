@@ -107,7 +107,6 @@ export const markManualAttendance = (records: Omit<AttendanceRecord, 'id'>[]) =>
   const updatedRecords = [...currentRecords, ...newRecordsWithIds];
   saveAttendanceRecords(updatedRecords);
 
-  // Update user attendance rates (simulated calculation)
   const users = getStoredUsers();
   newRecordsWithIds.forEach(rec => {
     const userIdx = users.findIndex(u => u.id === rec.studentId);
@@ -124,12 +123,10 @@ export const markManualAttendance = (records: Omit<AttendanceRecord, 'id'>[]) =>
 export const login = (userId: string, passwordInput: string): User | null => {
   const users = getStoredUsers();
   const cleanId = userId.trim().toLowerCase();
-  const cleanPass = passwordInput.trim().toLowerCase();
   
-  // Universal Login: Find any user where ID and Password match (case-insensitive for both)
+  // Universal Login: Find user by ID (case-insensitive) and Password (case-sensitive)
   const user = users.find(u => 
-    u.id.toLowerCase() === cleanId && 
-    (u.password?.toLowerCase() === cleanPass)
+    u.id.toLowerCase() === cleanId && u.password === passwordInput
   );
 
   if (user) {

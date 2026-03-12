@@ -20,9 +20,7 @@ export default function LoginPage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Force initialize users in storage on component mount
     getStoredUsers();
-    
     const user = getCurrentUser();
     if (user) {
       router.push("/dashboard");
@@ -33,10 +31,9 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
 
-    // Artificial delay for feedback
     await new Promise((resolve) => setTimeout(resolve, 800));
 
-    // Universal Login: Role selection is no longer required
+    // Universal Login Logic: Automatically detects role based on ID/PW
     const user = login(userId, password);
 
     if (user) {
@@ -49,7 +46,7 @@ export default function LoginPage() {
       toast({
         variant: "destructive",
         title: "Authentication Failed",
-        description: "Please check your ID and Password. Use 'admin' / 'admin-password' for testing.",
+        description: "Invalid ID or Password. Note: Password is case-sensitive.",
       });
     }
     setLoading(false);
@@ -84,7 +81,7 @@ export default function LoginPage() {
                   <UserIcon className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="userId"
-                    placeholder="Enter unique ID (e.g., admin)"
+                    placeholder="Enter unique ID"
                     className="pl-10 h-11 bg-white border-muted"
                     value={userId}
                     onChange={(e) => setUserId(e.target.value)}
@@ -114,11 +111,13 @@ export default function LoginPage() {
               <div className="p-4 bg-primary/5 rounded-xl border border-primary/10">
                 <div className="flex items-center gap-2 mb-2">
                   <Info className="w-4 h-4 text-primary" />
-                  <p className="font-bold text-primary text-[10px] uppercase tracking-widest">Universal Login Active</p>
+                  <p className="font-bold text-primary text-[10px] uppercase tracking-widest">Authentication Tips</p>
                 </div>
-                <p className="text-[11px] text-muted-foreground leading-relaxed italic">
-                  Roles are detected automatically. Passwords are case-insensitive for easier testing.
-                </p>
+                <ul className="text-[11px] text-muted-foreground space-y-1 ml-1">
+                  <li>• Role is detected automatically based on your ID.</li>
+                  <li>• User IDs are case-insensitive.</li>
+                  <li className="font-bold text-foreground underline decoration-primary/30">• Passwords are case-sensitive.</li>
+                </ul>
               </div>
             </CardContent>
             <CardFooter>

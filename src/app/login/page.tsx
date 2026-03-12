@@ -22,7 +22,9 @@ export default function LoginPage() {
   const { toast } = useToast();
 
   useEffect(() => {
+    // Ensure default users exist in storage
     getStoredUsers();
+    
     const user = getCurrentUser();
     if (user) {
       router.push("/dashboard");
@@ -33,6 +35,7 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
 
+    // Minor delay for feedback
     await new Promise((resolve) => setTimeout(resolve, 800));
 
     const user = login(userId, password, role);
@@ -135,9 +138,9 @@ export default function LoginPage() {
                   <p className="font-bold text-primary text-[10px] uppercase tracking-widest">Authentication Tips</p>
                 </div>
                 <ul className="text-[11px] text-muted-foreground space-y-1 ml-1">
-                  <li>• You are currently logging into the <strong>{role}</strong> dashboard.</li>
-                  <li>• Use the ID provided by the administration office.</li>
-                  <li>• Passwords are case-sensitive.</li>
+                  <li>• Ensure the <strong>Role</strong> tab matches your account type.</li>
+                  <li>• User IDs are case-insensitive (e.g. 'alice' = 'Alice').</li>
+                  <li>• Passwords are <strong>case-sensitive</strong>.</li>
                 </ul>
               </div>
             </CardContent>

@@ -21,7 +21,6 @@ export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
 
-  // Redirect if already logged in
   useEffect(() => {
     const user = getCurrentUser();
     if (user) {
@@ -33,10 +32,9 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
 
-    // Simulate network delay
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 800));
 
-    const user = login(userId, role);
+    const user = login(userId, role, password);
 
     if (user) {
       toast({
@@ -48,7 +46,7 @@ export default function LoginPage() {
       toast({
         variant: "destructive",
         title: "Access Denied",
-        description: "Invalid credentials. Please use the hints below for the demo.",
+        description: "Invalid ID or Password. Check the credentials below.",
       });
     }
     setLoading(false);
@@ -74,7 +72,7 @@ export default function LoginPage() {
           <form onSubmit={handleLogin}>
             <CardHeader>
               <CardTitle className="text-xl font-bold">Secure Sign In</CardTitle>
-              <CardDescription>Select your role and enter your unique ID</CardDescription>
+              <CardDescription>Select your role and enter your credentials</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
@@ -97,7 +95,7 @@ export default function LoginPage() {
                   <UserIcon className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="userId"
-                    placeholder="Enter ID (e.g. admin, teacher, student)"
+                    placeholder="e.g. admin, teacher, student"
                     className="pl-10 h-11 bg-white border-muted"
                     value={userId}
                     onChange={(e) => setUserId(e.target.value)}
@@ -113,7 +111,7 @@ export default function LoginPage() {
                   <Input
                     id="password"
                     type="password"
-                    placeholder="••••••••"
+                    placeholder="Enter Password"
                     className="pl-10 h-11 bg-white border-muted"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -122,18 +120,21 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              <div className="p-4 bg-primary/5 rounded-xl border border-primary/10 flex gap-4 items-start">
-                <div className="p-2 bg-primary/10 rounded-lg shrink-0">
+              <div className="p-4 bg-primary/5 rounded-xl border border-primary/10">
+                <div className="flex items-center gap-2 mb-2">
                   <Info className="w-4 h-4 text-primary" />
+                  <p className="font-bold text-primary text-[10px] uppercase tracking-widest">Demo Credentials</p>
                 </div>
-                <div className="text-xs text-muted-foreground leading-relaxed">
-                  <p className="font-bold text-primary mb-1 uppercase tracking-widest">Demo Access Credentials</p>
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 mt-1">
-                    <span className="font-semibold">Admin:</span> <span>ID: <code className="bg-white px-1 border rounded">admin</code></span>
-                    <span className="font-semibold">Teacher:</span> <span>ID: <code className="bg-white px-1 border rounded">teacher</code></span>
-                    <span className="font-semibold">Student:</span> <span>ID: <code className="bg-white px-1 border rounded">student</code></span>
+                <div className="grid grid-cols-1 gap-1 text-[11px] text-muted-foreground">
+                  <div className="flex justify-between border-b border-primary/5 pb-1">
+                    <span className="font-bold">Admin:</span> <span>ID: <code className="bg-white px-1">admin</code> | PW: <code className="bg-white px-1">admin-password</code></span>
                   </div>
-                  <p className="mt-2 text-[10px] italic">Any password will work for this prototype.</p>
+                  <div className="flex justify-between border-b border-primary/5 py-1">
+                    <span className="font-bold">Teacher:</span> <span>ID: <code className="bg-white px-1">teacher</code> | PW: <code className="bg-white px-1">teacher-password</code></span>
+                  </div>
+                  <div className="flex justify-between pt-1">
+                    <span className="font-bold">Student:</span> <span>ID: <code className="bg-white px-1">student</code> | PW: <code className="bg-white px-1">student-password</code></span>
+                  </div>
                 </div>
               </div>
             </CardContent>
@@ -143,23 +144,14 @@ export default function LoginPage() {
                 className="w-full button-hover bg-primary h-12 text-base font-bold shadow-lg shadow-primary/20" 
                 disabled={loading}
               >
-                {loading ? (
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Authenticating...
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    Sign In to Dashboard <ArrowRight className="w-4 h-4" />
-                  </div>
-                )}
+                {loading ? "Authenticating..." : "Sign In to Dashboard"}
               </Button>
             </CardFooter>
           </form>
         </Card>
 
         <p className="text-center text-xs text-muted-foreground mt-8">
-          &copy; {new Date().getFullYear()} Balmiki Lincoln College. All rights reserved.
+          &copy; {new Date().getFullYear()} Balmiki Lincoln College.
         </p>
       </motion.div>
     </div>

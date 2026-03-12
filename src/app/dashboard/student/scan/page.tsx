@@ -18,6 +18,7 @@ export default function StudentScannerPage() {
   const [loading, setLoading] = useState(false);
   const [scanning, setScanning] = useState(false);
   const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
+  const isInitializingRef = useRef(false);
   const { toast } = useToast();
 
   const stopScanner = async () => {
@@ -30,24 +31,28 @@ export default function StudentScannerPage() {
         console.warn("Scanner stop warning:", err);
       } finally {
         setScanning(false);
+        // Clear reference completely
+        html5QrCodeRef.current = null;
       }
     }
   };
 
   const startScanner = async () => {
+    if (isInitializingRef.current) return;
+    isInitializingRef.current = true;
     setLoading(true);
+    
     try {
-      // Small delay to ensure DOM is ready
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
+      // Small delay to ensure previous instance is fully gone
       await stopScanner();
+      await new Promise(resolve => setTimeout(resolve, 300));
       
       const html5QrCode = new Html5Qrcode("reader");
       html5QrCodeRef.current = html5QrCode;
 
       const config = { 
-        fps: 15, 
-        qrbox: { width: 280, height: 280 },
+        fps: 10, 
+        qrbox: { width: 250, height: 250 },
         aspectRatio: 1.0
       };
 
@@ -61,6 +66,7 @@ export default function StudentScannerPage() {
           // Scanning...
         }
       );
+      
       setScanning(true);
       setHasCameraPermission(true);
     } catch (err) {
@@ -73,23 +79,29 @@ export default function StudentScannerPage() {
       });
     } finally {
       setLoading(false);
+      isInitializingRef.current = false;
     }
   };
 
   useEffect(() => {
     startScanner();
     return () => {
+      // This cleanup must be robust to prevent split screens
       stopScanner();
     };
   }, []);
 
   const handleScanSuccess = async (decodedText: string) => {
-    if (loading || !scanning) return;
+    // Only process one scan at a time
+    if (!scanning) return;
     
     setLoading(true);
-    setScanning(false); 
+    setScanning(false);
     
     try {
+      // Ensure the scanner stops immediately upon success
+      await stopScanner();
+      
       const qrData = JSON.parse(decodedText);
       const user = getCurrentUser();
 
@@ -113,14 +125,14 @@ export default function StudentScannerPage() {
           title: "Attendance Verified",
           description: `Checked in for ${qrData.subject} successfully.`,
         });
-        await stopScanner();
       } else {
         toast({
           variant: "destructive",
           title: "Duplicate Scan",
           description: "Attendance for this session has already been recorded today.",
         });
-        setScanning(true);
+        // Restart if it was a duplicate
+        startScanner();
       }
     } catch (e) {
       console.error("Invalid QR", e);
@@ -129,7 +141,8 @@ export default function StudentScannerPage() {
         title: "Incompatible QR Code",
         description: "Please scan a valid session QR from your teacher.",
       });
-      setScanning(true);
+      // Restart scanner for next attempt
+      startScanner();
     } finally {
       setLoading(false);
     }
@@ -148,8 +161,8 @@ export default function StudentScannerPage() {
             <Scan className="w-6 h-6 text-primary" />
           </div>
           <div>
-            <h1 className="text-3xl font-headline font-bold text-primary">Live Scan</h1>
-            <p className="text-muted-foreground text-sm">Align QR with camera view</p>
+            <h1 className="text-3xl font-headline font-bold text-primary">Attendance Scan</h1>
+            <p className="text-muted-foreground text-sm">Align the teacher's QR code</p>
           </div>
         </div>
         <Button 
@@ -167,72 +180,45 @@ export default function StudentScannerPage() {
         {!scanResult ? (
           <motion.div
             key="scanner"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95 }}
             className="space-y-4"
           >
-            <Card className="border-none shadow-2xl overflow-hidden bg-black relative rounded-3xl">
-              <CardHeader className="bg-white/95 backdrop-blur-md border-b relative z-20">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      Active Camera
-                      {scanning && (
-                        <span className="flex h-2 w-2 rounded-full bg-red-500 animate-pulse" />
-                      )}
-                    </CardTitle>
-                    <CardDescription>Target the center box</CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
+            <Card className="border-none shadow-2xl overflow-hidden bg-black relative rounded-3xl min-h-[400px]">
+              <div 
+                id="reader" 
+                className="w-full min-h-[400px] [&_video]:object-cover"
+              ></div>
               
-              <CardContent className="p-0 min-h-[500px] flex items-center justify-center relative bg-black">
-                <div 
-                  id="reader" 
-                  className="w-full h-full min-h-[500px] [&_video]:object-cover [&_video]:h-[500px] [&_video]:w-full overflow-hidden"
-                ></div>
-                
-                {hasCameraPermission === false && !loading && (
-                  <div className="absolute inset-0 z-50 p-6 flex items-center justify-center bg-background/95 backdrop-blur-sm">
-                    <Alert variant="destructive" className="max-w-sm">
-                      <Camera className="h-4 w-4" />
-                      <AlertTitle>Camera Access Required</AlertTitle>
-                      <AlertDescription className="space-y-4">
-                        <p>Please check your browser permissions to use the scanner.</p>
-                        <Button onClick={startScanner} variant="outline" className="w-full">
-                          Try Again
-                        </Button>
-                      </AlertDescription>
-                    </Alert>
-                  </div>
-                )}
-
+              <AnimatePresence>
                 {loading && (
-                  <div className="absolute inset-0 bg-black/70 z-50 flex flex-col items-center justify-center text-white backdrop-blur-sm">
+                  <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="absolute inset-0 bg-black/70 z-50 flex flex-col items-center justify-center text-white backdrop-blur-sm"
+                  >
                     <RefreshCw className="w-12 h-12 text-primary animate-spin mb-4" />
-                    <p className="font-bold tracking-widest uppercase text-xs text-primary">Initializing...</p>
-                  </div>
+                    <p className="font-bold tracking-widest uppercase text-xs text-primary">Working...</p>
+                  </motion.div>
                 )}
+              </AnimatePresence>
 
-                {/* Single Professional Overlay */}
-                <div className="absolute inset-0 pointer-events-none z-10 flex items-center justify-center">
-                  <div className="w-72 h-72 border-2 border-white/20 rounded-3xl relative shadow-[0_0_0_9999px_rgba(0,0,0,0.4)]">
-                    <div className="absolute top-0 left-0 w-10 h-10 border-t-4 border-l-4 border-primary rounded-tl-2xl -translate-x-1 -translate-y-1"></div>
-                    <div className="absolute top-0 right-0 w-10 h-10 border-t-4 border-r-4 border-primary rounded-tr-2xl translate-x-1 -translate-y-1"></div>
-                    <div className="absolute bottom-0 left-0 w-10 h-10 border-b-4 border-l-4 border-primary rounded-bl-2xl -translate-x-1 translate-y-1"></div>
-                    <div className="absolute bottom-0 right-0 w-10 h-10 border-b-4 border-r-4 border-primary rounded-br-2xl translate-x-1 translate-y-1"></div>
-                    
-                    {scanning && (
-                      <motion.div 
-                        animate={{ top: ["5%", "95%", "5%"] }} 
-                        transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                        className="absolute left-2 right-2 h-0.5 bg-primary/60 shadow-[0_0_15px_rgba(46,92,184,0.8)] z-20"
-                      />
-                    )}
-                  </div>
+              {hasCameraPermission === false && !loading && (
+                <div className="absolute inset-0 z-50 p-6 flex items-center justify-center bg-background/95 backdrop-blur-sm">
+                  <Alert variant="destructive" className="max-w-sm">
+                    <Camera className="h-4 w-4" />
+                    <AlertTitle>Camera Access Required</AlertTitle>
+                    <AlertDescription className="space-y-4">
+                      <p>Please check your browser permissions to use the scanner.</p>
+                      <Button onClick={startScanner} variant="outline" className="w-full">
+                        Try Again
+                      </Button>
+                    </AlertDescription>
+                  </Alert>
                 </div>
-              </CardContent>
+              )}
             </Card>
           </motion.div>
         ) : (
@@ -272,10 +258,6 @@ export default function StudentScannerPage() {
                   <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Semester</p>
                   <p className="font-bold text-sm">{scanResult.semester}</p>
                 </div>
-                <div className="space-y-1 pt-4 border-t border-muted col-span-2">
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold text-center">Audit Reference</p>
-                  <p className="font-mono text-[10px] text-center text-primary truncate uppercase">{scanResult.id}</p>
-                </div>
               </div>
 
               <Button className="w-full button-hover h-16 rounded-2xl font-bold text-xl shadow-xl shadow-primary/20" onClick={resetScanner}>
@@ -291,7 +273,7 @@ export default function StudentScannerPage() {
           <AlertCircle className="w-6 h-6 text-primary" />
         </div>
         <div className="text-sm">
-          <p className="font-bold text-primary mb-1 text-base">Automatic Sync</p>
+          <p className="font-bold text-primary mb-1 text-base">Automatic Registration</p>
           <p className="text-muted-foreground leading-relaxed">
             Attendance is instantly recorded and synced with the college database. Keep scanning until you see the verification message.
           </p>
@@ -300,3 +282,4 @@ export default function StudentScannerPage() {
     </div>
   );
 }
+

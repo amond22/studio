@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Users, Plus, Mail, Shield, MoreHorizontal, UserPlus, GraduationCap, Search, FileBarChart } from "lucide-react";
+import { Users, Plus, Mail, Shield, MoreHorizontal, UserPlus, GraduationCap, Search, FileBarChart, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -32,6 +32,7 @@ export default function UsersManagementPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [facultyFilter, setFacultyFilter] = useState<string>("all");
   const { toast } = useToast();
 
   // Form State
@@ -78,10 +79,12 @@ export default function UsersManagementPage() {
     setNewPassword("");
   };
 
-  const filteredUsers = users.filter(u => 
-    u.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    u.id.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredUsers = users.filter(u => {
+    const matchesSearch = u.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          u.id.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesFaculty = facultyFilter === "all" || u.faculty === facultyFilter;
+    return matchesSearch && matchesFaculty;
+  });
 
   return (
     <div className="space-y-8">
@@ -174,14 +177,32 @@ export default function UsersManagementPage() {
         </Dialog>
       </div>
 
-      <div className="relative">
-        <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-        <Input 
-          placeholder="Search by name or ID..." 
-          className="pl-10" 
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+          <Input 
+            placeholder="Search by name or ID..." 
+            className="pl-10" 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+        <div className="w-full sm:w-48">
+          <Select value={facultyFilter} onValueChange={setFacultyFilter}>
+            <SelectTrigger>
+              <div className="flex items-center gap-2">
+                <Filter className="w-4 h-4 text-muted-foreground" />
+                <SelectValue placeholder="All Faculties" />
+              </div>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Faculties</SelectItem>
+              <SelectItem value="BIT">BIT Faculty</SelectItem>
+              <SelectItem value="BBA">BBA Faculty</SelectItem>
+              <SelectItem value="BHM">BHM Faculty</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <Card className="border-none shadow-sm overflow-hidden">
@@ -201,7 +222,7 @@ export default function UsersManagementPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredUsers.map((user) => (
+                {filteredUsers.length > 0 ? filteredUsers.map((user) => (
                   <TableRow key={user.id}>
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-3">
@@ -245,7 +266,13 @@ export default function UsersManagementPage() {
                       </Button>
                     </TableCell>
                   </TableRow>
-                ))}
+                )) : (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-12 text-muted-foreground">
+                      No users found matching your criteria.
+                    </TableCell>
+                  </TableRow>
+                )}
               </TableBody>
             </Table>
           </div>

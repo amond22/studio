@@ -2,29 +2,35 @@
 "use client";
 
 import { useState } from "react";
-import { FileText, Download, GraduationCap, Calendar, BarChart, Users, Search, ChevronRight } from "lucide-react";
+import { FileText, Download, GraduationCap, Calendar, BarChart, Users, Search, ChevronRight, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const MOCK_STUDENTS = [
   { id: "S202", name: "Alice Johnson", faculty: "BIT", semester: 4, attendance: 92, status: "Normal" },
   { id: "S303", name: "Mark Evans", faculty: "BIT", semester: 4, attendance: 65, status: "Warning" },
   { id: "S404", name: "Sarah Connor", faculty: "BIT", semester: 4, attendance: 78, status: "Normal" },
   { id: "S505", name: "David Miller", faculty: "BIT", semester: 4, attendance: 85, status: "Normal" },
-  { id: "S606", name: "Emily Blunt", faculty: "BIT", semester: 4, attendance: 45, status: "Critical" },
+  { id: "S606", name: "Emily Blunt", faculty: "BBA", semester: 2, attendance: 45, status: "Critical" },
+  { id: "S707", name: "James Wilson", faculty: "BHM", semester: 1, attendance: 88, status: "Normal" },
+  { id: "S808", name: "Sophia Loren", faculty: "BBA", semester: 4, attendance: 72, status: "Warning" },
 ];
 
 export default function TeacherReportsPage() {
   const [search, setSearch] = useState("");
+  const [facultyFilter, setFacultyFilter] = useState("all");
 
-  const filteredStudents = MOCK_STUDENTS.filter(s => 
-    s.name.toLowerCase().includes(search.toLowerCase()) || 
-    s.id.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredStudents = MOCK_STUDENTS.filter(s => {
+    const matchesSearch = s.name.toLowerCase().includes(search.toLowerCase()) || 
+                          s.id.toLowerCase().includes(search.toLowerCase());
+    const matchesFaculty = facultyFilter === "all" || s.faculty === facultyFilter;
+    return matchesSearch && matchesFaculty;
+  });
 
   return (
     <div className="space-y-8">
@@ -80,16 +86,34 @@ export default function TeacherReportsPage() {
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <CardTitle>Student Performance Ledger</CardTitle>
-              <CardDescription>Detailed attendance breakdown by student for Cloud Computing</CardDescription>
+              <CardDescription>Detailed attendance breakdown by faculty and semester</CardDescription>
             </div>
-            <div className="relative w-full max-w-xs">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input 
-                placeholder="Search student name..." 
-                className="pl-10" 
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
+            <div className="flex flex-col sm:flex-row gap-2 w-full max-w-lg">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input 
+                  placeholder="Search student name..." 
+                  className="pl-10" 
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+              </div>
+              <div className="w-full sm:w-40">
+                <Select value={facultyFilter} onValueChange={setFacultyFilter}>
+                  <SelectTrigger>
+                    <div className="flex items-center gap-2">
+                      <Filter className="w-3 h-3" />
+                      <SelectValue placeholder="Faculty" />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All</SelectItem>
+                    <SelectItem value="BIT">BIT</SelectItem>
+                    <SelectItem value="BBA">BBA</SelectItem>
+                    <SelectItem value="BHM">BHM</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
         </CardHeader>
@@ -106,7 +130,7 @@ export default function TeacherReportsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredStudents.map((student) => (
+                {filteredStudents.length > 0 ? filteredStudents.map((student) => (
                   <TableRow key={student.id}>
                     <TableCell>
                       <div>
@@ -152,7 +176,13 @@ export default function TeacherReportsPage() {
                       </Button>
                     </TableCell>
                   </TableRow>
-                ))}
+                )) : (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-12 text-muted-foreground">
+                      No students found in the selected faculty.
+                    </TableCell>
+                  </TableRow>
+                )}
               </TableBody>
             </Table>
           </div>

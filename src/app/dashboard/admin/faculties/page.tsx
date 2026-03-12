@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { GraduationCap, Plus, MoreVertical, Edit, Trash2, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,24 +21,68 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+
+interface Faculty {
+  id: string;
+  name: string;
+  longName: string;
+  semesters: number;
+  subjects: number;
+}
 
 export default function FacultyManagementPage() {
-  const [faculties, setFaculties] = useState([
-    { id: 1, name: "BIT", longName: "Bachelor of Information Technology", semesters: 8, subjects: 42 },
-    { id: 2, name: "BBA", longName: "Bachelor of Business Administration", semesters: 8, subjects: 38 },
-    { id: 3, name: "BHM", longName: "Bachelor of Hotel Management", semesters: 8, subjects: 35 },
-  ]);
+  const [faculties, setFaculties] = useState<Faculty[]>([]);
+  const [open, setOpen] = useState(false);
+  const { toast } = useToast();
+
+  // Form
+  const [code, setCode] = useState("");
+  const [fullName, setFullName] = useState("");
+
+  useEffect(() => {
+    const stored = localStorage.getItem('eduscan_faculties');
+    if (stored) {
+      setFaculties(JSON.parse(stored));
+    } else {
+      const initial = [
+        { id: "BIT", name: "BIT", longName: "Bachelor of Information Technology", semesters: 8, subjects: 42 },
+        { id: "BBA", name: "BBA", longName: "Bachelor of Business Administration", semesters: 8, subjects: 38 },
+        { id: "BHM", name: "BHM", longName: "Bachelor of Hotel Management", semesters: 8, subjects: 35 },
+      ];
+      setFaculties(initial);
+      localStorage.setItem('eduscan_faculties', JSON.stringify(initial));
+    }
+  }, []);
+
+  const handleAdd = () => {
+    if (!code || !fullName) return;
+    const newFac: Faculty = {
+      id: code,
+      name: code,
+      longName: fullName,
+      semesters: 8,
+      subjects: 0
+    };
+    const updated = [...faculties, newFac];
+    setFaculties(updated);
+    localStorage.setItem('eduscan_faculties', JSON.stringify(updated));
+    toast({ title: "Faculty Created", description: `${fullName} has been added.` });
+    setOpen(false);
+    setCode("");
+    setFullName("");
+  };
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <GraduationCap className="w-8 h-8 text-primary" />
           <h1 className="text-3xl font-headline font-bold text-primary">Faculties</h1>
         </div>
-        <Dialog>
+        <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button className="button-hover">
+            <Button className="button-hover w-full sm:w-auto">
               <Plus className="w-4 h-4 mr-2" />
               Add Faculty
             </Button>
@@ -50,15 +94,15 @@ export default function FacultyManagementPage() {
             <div className="space-y-4 py-4">
               <div className="space-y-2">
                 <Label>Faculty Code (e.g., BIT)</Label>
-                <Input placeholder="BIT" />
+                <Input placeholder="BIT" value={code} onChange={(e) => setCode(e.target.value)} />
               </div>
               <div className="space-y-2">
                 <Label>Full Name</Label>
-                <Input placeholder="Bachelor of Science in IT" />
+                <Input placeholder="Bachelor of Science in IT" value={fullName} onChange={(e) => setFullName(e.target.value)} />
               </div>
             </div>
             <DialogFooter>
-              <Button className="w-full">Create Faculty</Button>
+              <Button className="w-full" onClick={handleAdd}>Create Faculty</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

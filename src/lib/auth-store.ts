@@ -43,7 +43,7 @@ const DEFAULT_USERS: User[] = [
   }
 ];
 
-const getStoredUsers = (): User[] => {
+export const getStoredUsers = (): User[] => {
   if (typeof window === 'undefined') return DEFAULT_USERS;
   const stored = localStorage.getItem('eduscan_users');
   if (!stored) {
@@ -51,6 +51,12 @@ const getStoredUsers = (): User[] => {
     return DEFAULT_USERS;
   }
   return JSON.parse(stored);
+};
+
+export const saveUsers = (users: User[]) => {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('eduscan_users', JSON.stringify(users));
+  }
 };
 
 export const login = (userId: string, role: UserRole, passwordInput: string): User | null => {
@@ -81,7 +87,7 @@ export const updateUserProfile = (updatedData: Partial<User>): User | null => {
     const updatedUser = { ...users[userIndex], ...updatedData };
     users[userIndex] = updatedUser;
     
-    localStorage.setItem('eduscan_users', JSON.stringify(users));
+    saveUsers(users);
     localStorage.setItem('user_session', JSON.stringify(updatedUser));
     
     return updatedUser;

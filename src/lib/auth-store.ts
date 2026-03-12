@@ -56,7 +56,12 @@ export const getStoredUsers = (): User[] => {
     localStorage.setItem('eduscan_users', JSON.stringify(DEFAULT_USERS));
     return DEFAULT_USERS;
   }
-  return JSON.parse(stored);
+  try {
+    const parsed = JSON.parse(stored);
+    return Array.isArray(parsed) ? parsed : DEFAULT_USERS;
+  } catch (e) {
+    return DEFAULT_USERS;
+  }
 };
 
 export const saveUsers = (users: User[]) => {
@@ -67,6 +72,7 @@ export const saveUsers = (users: User[]) => {
 
 export const login = (userId: string, role: UserRole, passwordInput: string): User | null => {
   const users = getStoredUsers();
+  // Case-insensitive ID check, strict role and password check
   const user = users.find(u => 
     u.id.toLowerCase() === userId.toLowerCase() && 
     u.role === role && 

@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { UserRole, login, getCurrentUser } from "@/lib/auth-store";
 import { useToast } from "@/hooks/use-toast";
-import { KeyRound, User as UserIcon, Building2, Info, ArrowRight } from "lucide-react";
+import { KeyRound, User as UserIcon, Building2, Info, ArrowRight, Loader2 } from "lucide-react";
 
 export default function LoginPage() {
   const [role, setRole] = useState<UserRole>("Student");
@@ -32,6 +32,7 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
 
+    // Short artificial delay for UX feel
     await new Promise((resolve) => setTimeout(resolve, 800));
 
     const user = login(userId, role, password);
@@ -46,7 +47,7 @@ export default function LoginPage() {
       toast({
         variant: "destructive",
         title: "Access Denied",
-        description: "Invalid ID or Password. Check the credentials below.",
+        description: "The ID, password, or role provided does not match any registered account.",
       });
     }
     setLoading(false);
@@ -65,14 +66,14 @@ export default function LoginPage() {
             <Building2 className="w-10 h-10 text-primary" />
           </div>
           <h1 className="text-3xl font-headline font-bold text-primary">EduScan Portal</h1>
-          <p className="text-muted-foreground mt-2 font-medium">Balmiki Lincoln College Management</p>
+          <p className="text-muted-foreground mt-2 font-medium text-sm">Balmiki Lincoln College Management</p>
         </div>
 
         <Card className="border-none shadow-2xl bg-white/90 backdrop-blur-md">
           <form onSubmit={handleLogin}>
             <CardHeader>
               <CardTitle className="text-xl font-bold">Secure Sign In</CardTitle>
-              <CardDescription>Select your role and enter your credentials</CardDescription>
+              <CardDescription>Enter the credentials provided by the Administrator</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
@@ -95,7 +96,7 @@ export default function LoginPage() {
                   <UserIcon className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="userId"
-                    placeholder="e.g. admin, teacher, student"
+                    placeholder="Enter unique ID"
                     className="pl-10 h-11 bg-white border-muted"
                     value={userId}
                     onChange={(e) => setUserId(e.target.value)}
@@ -123,19 +124,11 @@ export default function LoginPage() {
               <div className="p-4 bg-primary/5 rounded-xl border border-primary/10">
                 <div className="flex items-center gap-2 mb-2">
                   <Info className="w-4 h-4 text-primary" />
-                  <p className="font-bold text-primary text-[10px] uppercase tracking-widest">Demo Credentials</p>
+                  <p className="font-bold text-primary text-[10px] uppercase tracking-widest">Demo or Custom Accounts</p>
                 </div>
-                <div className="grid grid-cols-1 gap-1 text-[11px] text-muted-foreground">
-                  <div className="flex justify-between border-b border-primary/5 pb-1">
-                    <span className="font-bold">Admin:</span> <span>ID: <code className="bg-white px-1">admin</code> | PW: <code className="bg-white px-1">admin-password</code></span>
-                  </div>
-                  <div className="flex justify-between border-b border-primary/5 py-1">
-                    <span className="font-bold">Teacher:</span> <span>ID: <code className="bg-white px-1">teacher</code> | PW: <code className="bg-white px-1">teacher-password</code></span>
-                  </div>
-                  <div className="flex justify-between pt-1">
-                    <span className="font-bold">Student:</span> <span>ID: <code className="bg-white px-1">student</code> | PW: <code className="bg-white px-1">student-password</code></span>
-                  </div>
-                </div>
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  Use default IDs (<code className="bg-white px-1">admin</code>, <code className="bg-white px-1">teacher</code>, <code className="bg-white px-1">student</code>) or any account created via the Admin panel.
+                </p>
               </div>
             </CardContent>
             <CardFooter>
@@ -144,14 +137,24 @@ export default function LoginPage() {
                 className="w-full button-hover bg-primary h-12 text-base font-bold shadow-lg shadow-primary/20" 
                 disabled={loading}
               >
-                {loading ? "Authenticating..." : "Sign In to Dashboard"}
+                {loading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Authenticating...
+                  </>
+                ) : (
+                  <>
+                    Sign In to Dashboard
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </>
+                )}
               </Button>
             </CardFooter>
           </form>
         </Card>
 
         <p className="text-center text-xs text-muted-foreground mt-8">
-          &copy; {new Date().getFullYear()} Balmiki Lincoln College.
+          &copy; {new Date().getFullYear()} Balmiki Lincoln College. All rights reserved.
         </p>
       </motion.div>
     </div>

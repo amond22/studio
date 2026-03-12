@@ -19,16 +19,24 @@ export default function StudentScannerPage() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const { toast } = useToast();
 
-  // 1. Handle Camera Permission and Initial Stream
+  // 1. Initial Permission Check
   useEffect(() => {
     const getCameraPermission = async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: true });
         setHasCameraPermission(true);
 
+        // We show the stream briefly to confirm access, then stop it so the scanner can use it
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
         }
+
+        // Release the camera after 1 second so Html5QrcodeScanner can take over
+        setTimeout(() => {
+          stream.getTracks().forEach(track => track.stop());
+          if (videoRef.current) videoRef.current.srcObject = null;
+        }, 1000);
+
       } catch (error) {
         console.error('Error accessing camera:', error);
         setHasCameraPermission(false);
@@ -40,29 +48,26 @@ export default function StudentScannerPage() {
       }
     };
 
-    getCameraPermission();
+    if (hasCameraPermission === null) {
+      getCameraPermission();
+    }
+  }, [hasCameraPermission, toast]);
 
-    return () => {
-      if (videoRef.current && videoRef.current.srcObject) {
-        const stream = videoRef.current.srcObject as MediaStream;
-        stream.getTracks().forEach(track => track.stop());
-      }
-    };
-  }, [toast]);
-
-  // 2. Initialize Scanner when permission is granted
+  // 2. Initialize Scanner
   useEffect(() => {
-    if (hasCameraPermission === true && !scanResult) {
-      // Small delay to ensure the permission stream is either reused or doesn't lock the resource
+    let scanner: Html5QrcodeScanner | null = null;
+
+    // Only start scanner if permission is granted and we haven't scanned yet
+    if (hasCameraPermission === true && !scanResult && !loading) {
       const timer = setTimeout(() => {
-        if (!scannerRef.current) {
-          const scanner = new Html5QrcodeScanner(
+        const element = document.getElementById("reader");
+        if (element && !scannerRef.current) {
+          scanner = new Html5QrcodeScanner(
             "reader",
             { 
               fps: 10, 
               qrbox: { width: 250, height: 250 },
               aspectRatio: 1.0,
-              showTorchButtonIfSupported: true,
             },
             /* verbose= */ false
           );
@@ -72,13 +77,13 @@ export default function StudentScannerPage() {
               handleScanSuccess(decodedText);
             },
             (error) => {
-              // Silent errors during scanning for better UX
+              // Ignore scan errors for better UX
             }
           );
 
           scannerRef.current = scanner;
         }
-      }, 500);
+      }, 1500); // Delay to ensure previous stream is fully released
 
       return () => {
         clearTimeout(timer);
@@ -88,7 +93,7 @@ export default function StudentScannerPage() {
         }
       };
     }
-  }, [hasCameraPermission, scanResult]);
+  }, [hasCameraPermission, scanResult, loading]);
 
   const handleScanSuccess = (result: string) => {
     if (scannerRef.current) {
@@ -156,7 +161,7 @@ export default function StudentScannerPage() {
                 {/* Always show video tag irrespective of hasCameraPermission check to prevent race condition */}
                 <video 
                   ref={videoRef} 
-                  className={`w-full aspect-video rounded-md absolute inset-0 object-cover z-0 ${hasCameraPermission && !loading ? 'opacity-30' : 'opacity-0'}`} 
+                  className={`w-full aspect-video rounded-md absolute inset-0 object-cover z-0 transition-opacity duration-500 ${hasCameraPermission && !scannerRef.current ? 'opacity-50' : 'opacity-0'}`} 
                   autoPlay 
                   muted 
                 />

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { CheckCircle2, AlertTriangle, Scan, Wifi, ShieldOff, Camera, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { getCurrentUser, getStoredUsers, saveUsers } from "@/lib/auth-store";
 
 export default function StudentScannerPage() {
   const [wifiBypass, setWifiBypass] = useState(true);
@@ -19,19 +20,16 @@ export default function StudentScannerPage() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const { toast } = useToast();
 
-  // 1. Initial Permission Check
   useEffect(() => {
     const getCameraPermission = async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: true });
         setHasCameraPermission(true);
 
-        // We show the stream briefly to confirm access, then stop it so the scanner can use it
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
         }
 
-        // Release the camera after 1 second so Html5QrcodeScanner can take over
         setTimeout(() => {
           stream.getTracks().forEach(track => track.stop());
           if (videoRef.current) videoRef.current.srcObject = null;
@@ -53,11 +51,9 @@ export default function StudentScannerPage() {
     }
   }, [hasCameraPermission, toast]);
 
-  // 2. Initialize Scanner
   useEffect(() => {
     let scanner: Html5QrcodeScanner | null = null;
 
-    // Only start scanner if permission is granted and we haven't scanned yet
     if (hasCameraPermission === true && !scanResult && !loading) {
       const timer = setTimeout(() => {
         const element = document.getElementById("reader");
@@ -83,7 +79,7 @@ export default function StudentScannerPage() {
 
           scannerRef.current = scanner;
         }
-      }, 1500); // Delay to ensure previous stream is fully released
+      }, 1500);
 
       return () => {
         clearTimeout(timer);
@@ -103,11 +99,28 @@ export default function StudentScannerPage() {
     
     // Simulate API call for attendance verification
     setTimeout(() => {
+      // Logic to actually progress attendance in localStorage
+      const user = getCurrentUser();
+      if (user && user.role === 'Student') {
+        const users = getStoredUsers();
+        const userIdx = users.findIndex(u => u.id === user.id);
+        if (userIdx !== -1) {
+          // Progress attendance by 5% per successful scan, capped at 100%
+          const currentRate = users[userIdx].attendanceRate || 0;
+          const newRate = Math.min(100, currentRate + 5);
+          users[userIdx].attendanceRate = newRate;
+          saveUsers(users);
+          
+          // Update session to reflect new percentage on dashboard
+          localStorage.setItem('user_session', JSON.stringify(users[userIdx]));
+        }
+      }
+
       setScanResult(result);
       setLoading(false);
       toast({
         title: "Attendance Recorded",
-        description: "✅ Successful scan for Cloud Computing.",
+        description: "✅ Successful scan. Your attendance percentage has increased!",
       });
     }, 1200);
   };
@@ -157,18 +170,13 @@ export default function StudentScannerPage() {
                 </div>
               </CardHeader>
               <CardContent className="p-0 min-h-[400px] flex items-center justify-center relative bg-black">
-                
-                {/* Always show video tag irrespective of hasCameraPermission check to prevent race condition */}
                 <video 
                   ref={videoRef} 
                   className={`w-full aspect-video rounded-md absolute inset-0 object-cover z-0 transition-opacity duration-500 ${hasCameraPermission && !scannerRef.current ? 'opacity-50' : 'opacity-0'}`} 
                   autoPlay 
                   muted 
                 />
-
-                {/* The reader div where html5-qrcode will render its UI */}
                 <div id="reader" className="w-full z-10 bg-black/50 backdrop-blur-sm min-h-[400px]"></div>
-                
                 {hasCameraPermission === false && (
                   <div className="absolute inset-0 z-50 p-6 flex items-center justify-center bg-background/95 backdrop-blur-sm">
                     <Alert variant="destructive" className="max-w-sm">
@@ -180,7 +188,6 @@ export default function StudentScannerPage() {
                     </Alert>
                   </div>
                 )}
-
                 {loading && (
                   <div className="absolute inset-0 bg-black/80 z-20 flex flex-col items-center justify-center text-white">
                     <RefreshCw className="w-12 h-12 text-primary animate-spin mb-4" />
@@ -203,12 +210,12 @@ export default function StudentScannerPage() {
               </div>
               <div>
                 <h2 className="text-3xl font-headline font-bold text-foreground">Attendance Marked!</h2>
-                <p className="text-muted-foreground mt-1 font-medium italic">Subject: Cloud Computing &bull; {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                <p className="text-muted-foreground mt-1 font-medium italic">Successfully verified for session &bull; {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
               </div>
               <div className="w-full max-w-sm grid grid-cols-2 gap-4 text-left border-t border-dashed pt-8">
                 <div className="space-y-1">
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Student Name</p>
-                  <p className="font-semibold text-primary">Alice Johnson</p>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Verification Mode</p>
+                  <p className="font-semibold text-primary">QR Scanner</p>
                 </div>
                 <div className="space-y-1 text-right">
                   <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Verification Date</p>

@@ -71,7 +71,7 @@ export default function UsersManagementPage() {
       semester: newRole === 'Student' ? parseInt(newSemester) : undefined,
       lcNo: newRole === 'Student' ? newLcNo : undefined,
       address: newRole === 'Student' ? newAddress : undefined,
-      attendanceRate: newRole === 'Student' ? 100 : undefined,
+      attendanceRate: newRole === 'Student' ? 0 : undefined, // Initialize at 0%
       photo: `https://picsum.photos/seed/${newUserId}/150/150`
     };
 
@@ -79,7 +79,7 @@ export default function UsersManagementPage() {
     setUsers(updatedUsers);
     saveUsers(updatedUsers);
     
-    toast({ title: "User Added", description: `${newName} can now login.` });
+    toast({ title: "User Added", description: `${newName} can now login. Initial attendance set to 0%.` });
     setOpen(false);
     
     // Reset form

@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FileText, Download, GraduationCap, Calendar, BarChart, Users, Search, ChevronRight, Filter, Loader2, Eye, BookOpen, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -13,25 +13,23 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
-const MOCK_STUDENTS = [
-  { id: "S202", name: "Alice Johnson", faculty: "BIT", semester: 4, attendance: 92, status: "Normal" },
-  { id: "S303", name: "Mark Evans", faculty: "BIT", semester: 4, attendance: 65, status: "Warning" },
-  { id: "S404", name: "Sarah Connor", faculty: "BIT", semester: 4, attendance: 78, status: "Normal" },
-  { id: "S505", name: "David Miller", faculty: "BIT", semester: 4, attendance: 85, status: "Normal" },
-  { id: "S606", name: "Emily Blunt", faculty: "BBA", semester: 2, attendance: 45, status: "Critical" },
-  { id: "S707", name: "James Wilson", faculty: "BHM", semester: 1, attendance: 88, status: "Normal" },
-  { id: "S808", name: "Sophia Loren", faculty: "BBA", semester: 4, attendance: 72, status: "Warning" },
-  { id: "S909", name: "Marcus Wright", faculty: "BIT", semester: 4, attendance: 95, status: "Normal" },
-];
+import { getStoredUsers, User } from "@/lib/auth-store";
+import { cn } from "@/lib/utils";
 
 export default function TeacherReportsPage() {
+  const [students, setStudents] = useState<User[]>([]);
   const [search, setSearch] = useState("");
   const [facultyFilter, setFacultyFilter] = useState("all");
   const [semesterFilter, setSemesterFilter] = useState("all");
   const [exporting, setExporting] = useState<string | null>(null);
-  const [selectedStudent, setSelectedStudent] = useState<any>(null);
+  const [selectedStudent, setSelectedStudent] = useState<User | null>(null);
   const { toast } = useToast();
+
+  useEffect(() => {
+    // Load real users from storage instead of mock data
+    const allUsers = getStoredUsers();
+    setStudents(allUsers.filter(u => u.role === 'Student'));
+  }, []);
 
   const handleExport = (type: string) => {
     setExporting(type);
@@ -44,13 +42,23 @@ export default function TeacherReportsPage() {
     }, 1500);
   };
 
-  const filteredStudents = MOCK_STUDENTS.filter(s => {
+  const getStatus = (rate: number) => {
+    if (rate < 60) return "Critical";
+    if (rate < 75) return "Warning";
+    return "Normal";
+  };
+
+  const filteredStudents = students.filter(s => {
     const matchesSearch = s.name.toLowerCase().includes(search.toLowerCase()) || 
                           s.id.toLowerCase().includes(search.toLowerCase());
     const matchesFaculty = facultyFilter === "all" || s.faculty === facultyFilter;
-    const matchesSemester = semesterFilter === "all" || s.semester.toString() === semesterFilter;
+    const matchesSemester = semesterFilter === "all" || s.semester?.toString() === semesterFilter;
     return matchesSearch && matchesFaculty && matchesSemester;
   });
+
+  const avgAttendance = students.length > 0 
+    ? (students.reduce((acc, s) => acc + (s.attendanceRate || 0), 0) / students.length).toFixed(1)
+    : "0";
 
   return (
     <div className="space-y-8">
@@ -94,8 +102,8 @@ export default function TeacherReportsPage() {
             <CardTitle className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest">Avg Attendance</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-primary">82.4%</div>
-            <p className="text-[10px] text-green-600 mt-1 font-medium">+2.4% vs last week</p>
+            <div className="text-2xl font-bold text-primary">{avgAttendance}%</div>
+            <p className="text-[10px] text-muted-foreground mt-1 font-medium italic">Across registered students</p>
           </CardContent>
         </Card>
         <Card className="border-none shadow-sm bg-white hover:shadow-md transition-shadow">
@@ -103,28 +111,28 @@ export default function TeacherReportsPage() {
             <CardTitle className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest">Total Students</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{MOCK_STUDENTS.length}</div>
-            <p className="text-[10px] text-muted-foreground mt-1">Across all faculties</p>
+            <div className="text-2xl font-bold">{students.length}</div>
+            <p className="text-[10px] text-muted-foreground mt-1">In system database</p>
           </CardContent>
         </Card>
         <Card className="border-none shadow-sm bg-white hover:shadow-md transition-shadow border-l-4 border-l-destructive">
           <CardHeader className="pb-2">
-            <CardTitle className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest">Critical (&lt;75%)</CardTitle>
+            <CardTitle className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest">At-Risk Students</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-destructive">
-              {MOCK_STUDENTS.filter(s => s.attendance < 75).length} Students
+              {students.filter(s => (s.attendanceRate || 0) < 75).length} Students
             </div>
-            <p className="text-[10px] text-muted-foreground mt-1">Action required</p>
+            <p className="text-[10px] text-muted-foreground mt-1">Action required (below 75%)</p>
           </CardContent>
         </Card>
         <Card className="border-none shadow-sm bg-white hover:shadow-md transition-shadow">
           <CardHeader className="pb-2">
-            <CardTitle className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest">Sessions Logged</CardTitle>
+            <CardTitle className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest">Sessions Tracked</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-accent">124</div>
-            <p className="text-[10px] text-muted-foreground mt-1">Current semester</p>
+            <div className="text-2xl font-bold text-accent">Active</div>
+            <p className="text-[10px] text-muted-foreground mt-1">Current semester monitoring</p>
           </CardContent>
         </Card>
       </div>
@@ -134,7 +142,7 @@ export default function TeacherReportsPage() {
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
             <div>
               <CardTitle className="text-lg">Student Performance Ledger</CardTitle>
-              <CardDescription>Comprehensive attendance history and department status</CardDescription>
+              <CardDescription>Real-time attendance tracking from scan records</CardDescription>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <div className="relative min-w-[200px] flex-1">
@@ -184,72 +192,76 @@ export default function TeacherReportsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredStudents.length > 0 ? filteredStudents.map((student) => (
-                  <TableRow 
-                    key={student.id} 
-                    className="cursor-pointer group hover:bg-muted/20 transition-colors"
-                    onClick={() => setSelectedStudent(student)}
-                  >
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs border border-primary/20 overflow-hidden">
-                          <img src={`https://picsum.photos/seed/${student.id}/50/50`} alt="" />
+                {filteredStudents.length > 0 ? filteredStudents.map((student) => {
+                  const rate = student.attendanceRate || 0;
+                  const status = getStatus(rate);
+                  return (
+                    <TableRow 
+                      key={student.id} 
+                      className="cursor-pointer group hover:bg-muted/20 transition-colors"
+                      onClick={() => setSelectedStudent(student)}
+                    >
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs border border-primary/20 overflow-hidden">
+                            <img src={student.photo} alt="" />
+                          </div>
+                          <div>
+                            <p className="font-bold text-sm group-hover:text-primary transition-colors">{student.name}</p>
+                            <p className="text-[10px] text-muted-foreground uppercase font-mono">{student.id}</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-bold text-sm group-hover:text-primary transition-colors">{student.name}</p>
-                          <p className="text-[10px] text-muted-foreground uppercase font-mono">{student.id}</p>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-col gap-1">
+                          <Badge variant="secondary" className="w-fit text-[9px] h-4 font-bold tracking-tighter">
+                            {student.faculty}
+                          </Badge>
+                          <span className="text-[10px] text-muted-foreground">Semester {student.semester}</span>
                         </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-col gap-1">
-                        <Badge variant="secondary" className="w-fit text-[9px] h-4 font-bold tracking-tighter">
-                          {student.faculty}
-                        </Badge>
-                        <span className="text-[10px] text-muted-foreground">Semester {student.semester}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="space-y-1.5">
-                        <div className="flex justify-between text-[10px] font-bold">
-                          <span className="text-muted-foreground uppercase">Participation</span>
-                          <span className={student.attendance < 75 ? "text-destructive" : "text-primary"}>
-                            {student.attendance}%
-                          </span>
+                      </TableCell>
+                      <TableCell>
+                        <div className="space-y-1.5">
+                          <div className="flex justify-between text-[10px] font-bold">
+                            <span className="text-muted-foreground uppercase">Participation</span>
+                            <span className={rate < 75 ? "text-destructive" : "text-primary"}>
+                              {rate}%
+                            </span>
+                          </div>
+                          <Progress 
+                            value={rate} 
+                            className={cn(
+                              "h-1.5",
+                              rate < 75 ? "bg-destructive/10" : "bg-primary/10"
+                            )}
+                          />
                         </div>
-                        <Progress 
-                          value={student.attendance} 
+                      </TableCell>
+                      <TableCell>
+                        <Badge 
                           className={cn(
-                            "h-1.5",
-                            student.attendance < 75 ? "bg-destructive/10" : "bg-primary/10"
+                            "text-[9px] h-5 font-bold border-none",
+                            status === "Critical" ? "bg-destructive/10 text-destructive" :
+                            status === "Warning" ? "bg-orange-100 text-orange-700" :
+                            "bg-green-100 text-green-700"
                           )}
-                        />
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge 
-                        className={cn(
-                          "text-[9px] h-5 font-bold border-none",
-                          student.status === "Critical" ? "bg-destructive/10 text-destructive" :
-                          student.status === "Warning" ? "bg-orange-100 text-orange-700" :
-                          "bg-green-100 text-green-700"
-                        )}
-                      >
-                        {student.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 group-hover:bg-primary/10 rounded-full">
-                        <ChevronRight className="w-4 h-4 text-primary" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                )) : (
+                        >
+                          {status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 group-hover:bg-primary/10 rounded-full">
+                          <ChevronRight className="w-4 h-4 text-primary" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                }) : (
                   <TableRow>
                     <TableCell colSpan={5} className="text-center py-20 text-muted-foreground">
                       <div className="flex flex-col items-center gap-2 opacity-50">
                         <Search className="w-10 h-10" />
-                        <p>No student records found matching filters.</p>
+                        <p>No student records found in live database.</p>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -260,14 +272,13 @@ export default function TeacherReportsPage() {
         </CardContent>
       </Card>
 
-      {/* Comprehensive Student Audit Modal */}
       <Dialog open={!!selectedStudent} onOpenChange={(open) => !open && setSelectedStudent(null)}>
         <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           {selectedStudent && (
             <>
               <DialogHeader className="flex flex-row items-center gap-4">
                 <div className="w-16 h-16 rounded-full border-2 border-primary/20 overflow-hidden shrink-0">
-                  <img src={`https://picsum.photos/seed/${selectedStudent.id}/150/150`} alt="" className="w-full h-full object-cover" />
+                  <img src={selectedStudent.photo} alt="" className="w-full h-full object-cover" />
                 </div>
                 <div className="text-left">
                   <DialogTitle className="text-2xl">{selectedStudent.name}</DialogTitle>
@@ -281,7 +292,7 @@ export default function TeacherReportsPage() {
               <Tabs defaultValue="overview" className="mt-6">
                 <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="overview">Performance Overview</TabsTrigger>
-                  <TabsTrigger value="history">Daily Session Log</TabsTrigger>
+                  <TabsTrigger value="history">Session Logs</TabsTrigger>
                 </TabsList>
                 
                 <TabsContent value="overview" className="space-y-6 py-4">
@@ -290,99 +301,47 @@ export default function TeacherReportsPage() {
                       <p className="text-[10px] font-bold uppercase text-muted-foreground mb-1">Total Attendance</p>
                       <p className={cn(
                         "text-3xl font-bold",
-                        selectedStudent.attendance < 75 ? "text-destructive" : "text-primary"
-                      )}>{selectedStudent.attendance}%</p>
-                      <Badge className="mt-2 text-[9px]" variant={selectedStudent.status === 'Critical' ? 'destructive' : 'default'}>
-                        {selectedStudent.status} Status
+                        (selectedStudent.attendanceRate || 0) < 75 ? "text-destructive" : "text-primary"
+                      )}>{selectedStudent.attendanceRate || 0}%</p>
+                      <Badge className="mt-2 text-[9px]" variant={(selectedStudent.attendanceRate || 0) < 75 ? 'destructive' : 'default'}>
+                        {getStatus(selectedStudent.attendanceRate || 0)} Status
                       </Badge>
                     </div>
                     <div className="p-4 bg-muted/40 rounded-2xl flex flex-col items-center text-center">
-                      <p className="text-[10px] font-bold uppercase text-muted-foreground mb-1">Classes Attended</p>
-                      <p className="text-3xl font-bold">92 / 100</p>
-                      <p className="text-[10px] text-muted-foreground mt-2 italic">8 Classes Missed</p>
+                      <p className="text-[10px] font-bold uppercase text-muted-foreground mb-1">Status Report</p>
+                      <p className="text-lg font-bold">Active Tracking</p>
+                      <p className="text-[10px] text-muted-foreground mt-2 italic">Updated via QR scan</p>
                     </div>
                   </div>
                   
                   <div className="space-y-4">
                     <div className="flex items-center gap-2">
                       <BookOpen className="w-4 h-4 text-primary" />
-                      <h4 className="text-sm font-bold">Subject-wise Breakdown</h4>
+                      <h4 className="text-sm font-bold">Academic Context</h4>
                     </div>
-                    {[
-                      { name: "Cloud Computing (BIT-401)", rate: 95, sessions: "24/25" },
-                      { name: "Database Systems (BIT-302)", rate: 88, sessions: "22/25" },
-                      { name: "Java Programming (BIT-205)", rate: selectedStudent.attendance - 12, sessions: "18/25" },
-                    ].map((sub, i) => (
-                      <div key={i} className="p-4 border rounded-xl space-y-2 hover:bg-muted/10 transition-colors">
-                        <div className="flex justify-between items-center">
-                          <span className="text-xs font-bold">{sub.name}</span>
-                          <span className="text-xs font-mono text-primary font-bold">{sub.rate}%</span>
-                        </div>
-                        <Progress value={sub.rate} className="h-1.5" />
-                        <p className="text-[10px] text-muted-foreground text-right">{sub.sessions} sessions present</p>
+                    <div className="p-4 border rounded-xl space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-bold">Overall Course Engagement</span>
+                        <span className="text-xs font-mono text-primary font-bold">{selectedStudent.attendanceRate || 0}%</span>
                       </div>
-                    ))}
+                      <Progress value={selectedStudent.attendanceRate || 0} className="h-1.5" />
+                    </div>
+                    <div className="text-xs text-muted-foreground bg-muted p-3 rounded-lg border italic">
+                      "Student attendance is tracked cumulatively. A rate of 0% indicates no successful scans have been recorded for this student yet."
+                    </div>
                   </div>
                 </TabsContent>
 
                 <TabsContent value="history" className="py-4">
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-2">
-                      <span>Recent Classes</span>
-                      <span>Status</span>
-                    </div>
-                    {[
-                      { date: "Today, 10:15 AM", subject: "Cloud Computing", status: "Present" },
-                      { date: "Yesterday, 09:02 AM", subject: "Database Systems", status: "Present" },
-                      { date: "Mar 15, 2024", subject: "Java Programming", status: "Late" },
-                      { date: "Mar 14, 2024", subject: "Cloud Computing", status: "Present" },
-                      { date: "Mar 12, 2024", subject: "Database Systems", status: "Absent" },
-                    ].map((log, i) => (
-                      <div key={i} className="flex items-center justify-between p-3 border rounded-xl hover:border-primary transition-colors">
-                        <div className="flex items-center gap-3">
-                          <div className={cn(
-                            "p-2 rounded-lg",
-                            log.status === 'Present' ? "bg-green-100" : 
-                            log.status === 'Late' ? "bg-orange-100" : "bg-red-100"
-                          )}>
-                            <Clock className={cn(
-                              "w-3 h-3",
-                              log.status === 'Present' ? "text-green-700" : 
-                              log.status === 'Late' ? "text-orange-700" : "text-red-700"
-                            )} />
-                          </div>
-                          <div>
-                            <p className="text-xs font-bold">{log.subject}</p>
-                            <p className="text-[10px] text-muted-foreground">{log.date}</p>
-                          </div>
-                        </div>
-                        <Badge 
-                          className={cn(
-                            "text-[9px] h-4 font-bold border-none",
-                            log.status === "Present" ? "bg-green-50 text-green-700" :
-                            log.status === "Late" ? "bg-orange-50 text-orange-700" :
-                            "bg-red-50 text-red-700"
-                          )}
-                        >
-                          {log.status}
-                        </Badge>
-                      </div>
-                    ))}
+                  <div className="text-center py-10 opacity-40">
+                    <Clock className="w-12 h-12 mx-auto mb-2" />
+                    <p className="text-sm font-medium">No individual session logs recorded yet.</p>
                   </div>
-                  <Button variant="ghost" className="w-full mt-4 text-xs font-bold text-primary">
-                    View Full 90-Day History
-                  </Button>
                 </TabsContent>
               </Tabs>
               
               <DialogFooter className="mt-6">
-                <div className="flex w-full gap-2">
-                  <Button variant="outline" className="flex-1" onClick={() => setSelectedStudent(null)}>Close</Button>
-                  <Button className="flex-1">
-                    <Download className="w-4 h-4 mr-2" />
-                    Export Detail
-                  </Button>
-                </div>
+                <Button variant="outline" className="w-full" onClick={() => setSelectedStudent(null)}>Close Audit View</Button>
               </DialogFooter>
             </>
           )}
@@ -390,8 +349,4 @@ export default function TeacherReportsPage() {
       </Dialog>
     </div>
   );
-}
-
-function cn(...inputs: any[]) {
-  return inputs.filter(Boolean).join(" ");
 }

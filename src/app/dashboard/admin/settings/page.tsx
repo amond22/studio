@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Settings, Wifi, Globe, ShieldCheck, Save, Image as ImageIcon, RefreshCcw, Loader2, Upload } from "lucide-react";
+import { Settings, Wifi, Globe, ShieldCheck, Save, Image as ImageIcon, RefreshCcw, Loader2, Upload, CalendarDays } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -52,7 +52,7 @@ export default function NetworkSettingsPage() {
       setSaving(false);
       toast({
         title: "Configuration Saved",
-        description: "Network restriction policies have been updated and stored.",
+        description: "Network restriction and academic dates have been updated.",
       });
     }, 800);
   };
@@ -90,6 +90,48 @@ export default function NetworkSettingsPage() {
         </div>
         <h1 className="text-3xl font-headline font-bold text-primary">College Controls</h1>
       </div>
+
+      <Card className="border-none shadow-sm">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <CalendarDays className="w-5 h-5 text-primary" />
+            <div>
+              <CardTitle>Academic Calendar</CardTitle>
+              <CardDescription>Set the semester dates to calculate accurate attendance rates</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-muted/30 rounded-2xl border">
+            <div className="space-y-2">
+              <Label htmlFor="opening-date" className="text-xs font-bold uppercase text-muted-foreground">Opening Date</Label>
+              <Input 
+                id="opening-date"
+                type="date"
+                value={settings.openingDate}
+                onChange={(e) => setSettings({ ...settings, openingDate: e.target.value })}
+                className="bg-white"
+              />
+              <p className="text-[10px] text-muted-foreground italic">Attendance rate is calculated starting from this day.</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="closing-date" className="text-xs font-bold uppercase text-muted-foreground">Closing Date</Label>
+              <Input 
+                id="closing-date"
+                type="date"
+                value={settings.closingDate}
+                onChange={(e) => setSettings({ ...settings, closingDate: e.target.value })}
+                className="bg-white"
+              />
+              <p className="text-[10px] text-muted-foreground italic">End of the current academic session.</p>
+            </div>
+          </div>
+          <Button className="w-full sm:w-auto" onClick={handleSaveNetworkSettings} disabled={saving}>
+            {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+            Save Academic Calendar
+          </Button>
+        </CardContent>
+      </Card>
 
       <Card className="border-none shadow-sm">
         <CardHeader>
@@ -141,8 +183,6 @@ export default function NetworkSettingsPage() {
                     </Button>
                   </div>
                 </div>
-                
-                <p className="text-[10px] text-muted-foreground italic">Uploaded images are converted to local data and saved instantly.</p>
               </div>
               <Button className="w-full sm:w-auto" onClick={handleSaveBranding} disabled={saving}>
                 {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
@@ -215,7 +255,7 @@ export default function NetworkSettingsPage() {
             <ShieldCheck className="w-10 h-10 text-accent mb-2" />
             <p className="font-bold">Security Enforcement</p>
             <p className="text-xs text-muted-foreground max-w-sm">
-              All settings saved here are persistent. Students will be blocked from scanning if they don't meet these requirements.
+              Network restrictions ensure that students are physically present on campus during scans.
             </p>
           </div>
 
@@ -228,4 +268,3 @@ export default function NetworkSettingsPage() {
     </div>
   );
 }
-

@@ -73,6 +73,8 @@ export interface NetworkSettings {
   wifiSsid: string;
   ipRangeStart: string;
   ipRangeEnd: string;
+  openingDate: string;
+  closingDate: string;
 }
 
 const DEFAULT_LOGO = "https://picsum.photos/seed/edu1/200/200";
@@ -127,7 +129,9 @@ const DEFAULT_NETWORK_SETTINGS: NetworkSettings = {
   restrictionEnabled: true,
   wifiSsid: "Balmiki_Lincoln_WiFi",
   ipRangeStart: "192.168.1.1",
-  ipRangeEnd: "192.168.1.255"
+  ipRangeEnd: "192.168.1.255",
+  openingDate: new Date().toISOString().split('T')[0],
+  closingDate: new Date(new Date().getFullYear(), 11, 31).toISOString().split('T')[0]
 };
 
 const isClient = typeof window !== 'undefined';
@@ -225,6 +229,7 @@ export function saveNetworkSettings(settings: NetworkSettings) {
   if (isClient) {
     localStorage.setItem('eduscan_network_settings', JSON.stringify(settings));
     window.dispatchEvent(new Event('storage'));
+    recalculateAllAttendanceRates();
   }
 }
 
@@ -264,6 +269,45 @@ export function saveQRSessions(sessions: QRSession[]) {
   }
 }
 
+/**
+ * Calculates attendance rate based on days passed since college opening.
+ */
+export function calculateStudentAttendanceRate(studentId: string, records: AttendanceRecord[]): number {
+  const settings = getNetworkSettings();
+  const opening = new Date(settings.openingDate);
+  const closing = new Date(settings.closingDate);
+  const now = new Date();
+  
+  // Calculate end boundary (cannot exceed closing date)
+  const end = now < closing ? now : closing;
+  
+  // If college hasn't opened yet
+  if (now < opening) return 0;
+
+  // Calculate days passed since opening
+  const diffTime = Math.abs(end.getTime() - opening.getTime());
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) || 1; // Minimum 1 day for rate denominator
+  
+  const studentRecords = records.filter(r => r.studentId === studentId);
+  const presentCount = studentRecords.filter(r => r.status === 'Present' || r.status === 'Late').length;
+  
+  return Math.min(100, Math.round((presentCount / diffDays) * 100));
+}
+
+export function recalculateAllAttendanceRates() {
+  const users = getStoredUsers();
+  const records = getAttendanceRecords();
+  
+  const updatedUsers = users.map(u => {
+    if (u.role === 'Student') {
+      return { ...u, attendanceRate: calculateStudentAttendanceRate(u.id, records) };
+    }
+    return u;
+  });
+  
+  saveUsers(updatedUsers);
+}
+
 export function markManualAttendance(records: Omit<AttendanceRecord, 'id'>[]) {
   const currentRecords = getAttendanceRecords();
   const newRecordsWithIds = records.map(r => ({ ...r, id: Math.random().toString(36).substring(2, 9) }));
@@ -276,10 +320,7 @@ export function markManualAttendance(records: Omit<AttendanceRecord, 'id'>[]) {
   uniqueStudentIds.forEach(studentId => {
     const userIdx = users.findIndex(u => u.id === studentId);
     if (userIdx !== -1) {
-      const studentRecords = updatedRecords.filter(r => r.studentId === studentId);
-      const presentCount = studentRecords.filter(r => r.status === 'Present' || r.status === 'Late').length;
-      const totalCount = studentRecords.length;
-      users[userIdx].attendanceRate = Math.round((presentCount / (totalCount || 1)) * 100);
+      users[userIdx].attendanceRate = calculateStudentAttendanceRate(studentId, updatedRecords);
     }
   });
   saveUsers(users);
@@ -298,20 +339,17 @@ export function recordScanAttendance(data: {
   const sessions = getQRSessions();
   const today = new Date().toISOString().split('T')[0];
   
-  // Find valid session by token (trimmed comparison)
   const session = sessions.find(s => s.token.trim() === data.token.trim());
   
   if (!session) {
     return { success: false, message: "Invalid session token. Please try again." };
   }
   
-  // Check Expiry
   const now = new Date();
   if (new Date(session.expiresAt) < now) {
     return { success: false, message: "This QR code has expired (60s limit)." };
   }
 
-  // Check Duplicate for Today
   const alreadyMarked = records.find(r => 
     r.studentId === data.studentId && 
     r.subjectId === data.subjectId && 
@@ -339,14 +377,10 @@ export function recordScanAttendance(data: {
   const updatedRecords = [...records, newRecord];
   saveAttendanceRecords(updatedRecords);
 
-  // Update Attendance Rate
   const users = getStoredUsers();
   const userIdx = users.findIndex(u => u.id === data.studentId);
   if (userIdx !== -1) {
-    const studentRecords = updatedRecords.filter(r => r.studentId === data.studentId);
-    const presentCount = studentRecords.filter(r => r.status === 'Present' || r.status === 'Late').length;
-    const totalCount = studentRecords.length;
-    users[userIdx].attendanceRate = Math.round((presentCount / (totalCount || 1)) * 100);
+    users[userIdx].attendanceRate = calculateStudentAttendanceRate(data.studentId, updatedRecords);
     saveUsers(users);
   }
 
@@ -355,8 +389,6 @@ export function recordScanAttendance(data: {
 
 export function login(userId: string, passwordInput: string, role: UserRole): User | null {
   const users = getStoredUsers();
-  
-  // Clean inputs for robust matching
   const cleanId = userId.trim().toLowerCase();
   const cleanPw = passwordInput.trim(); 
   

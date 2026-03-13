@@ -105,7 +105,7 @@ const DEFAULT_USERS: User[] = [
     photo: "https://picsum.photos/seed/student/150/150",
     lcNo: "LC-2024-001",
     address: "Bharatpur-10, Chitwan",
-    attendanceRate: 92
+    attendanceRate: 0 // Reset to 0 as requested
   }
 ];
 

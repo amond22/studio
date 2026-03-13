@@ -258,7 +258,6 @@ export function getQRSessions(): QRSession[] {
 export function saveQRSessions(sessions: QRSession[]) {
   if (isClient) {
     localStorage.setItem('eduscan_qr_sessions', JSON.stringify(sessions));
-    // Important: dispatch storage event for cross-tab sync in same browser
     window.dispatchEvent(new Event('storage'));
   }
 }
@@ -297,20 +296,17 @@ export function recordScanAttendance(data: {
   const sessions = getQRSessions();
   const today = new Date().toISOString().split('T')[0];
   
-  // 1. Verify token exists (case-insensitive and trimmed for robustness)
   const session = sessions.find(s => s.token.trim() === data.token.trim());
   
   if (!session) {
     return { success: false, message: "Invalid session token. Please try again." };
   }
   
-  // 2. Check Expiry
   const now = new Date();
   if (new Date(session.expiresAt) < now) {
     return { success: false, message: "This QR code has expired (60s limit)." };
   }
 
-  // 3. Prevent duplicate marks for same session
   const alreadyMarked = records.find(r => 
     r.studentId === data.studentId && 
     r.subjectId === data.subjectId && 
@@ -320,7 +316,6 @@ export function recordScanAttendance(data: {
     return { success: false, message: "Attendance already marked for this subject today." };
   }
 
-  // 4. Register Attendance
   const newRecord: AttendanceRecord = {
     id: Math.random().toString(36).substring(2, 9),
     studentId: data.studentId,
@@ -339,7 +334,6 @@ export function recordScanAttendance(data: {
   const updatedRecords = [...records, newRecord];
   saveAttendanceRecords(updatedRecords);
 
-  // Update user stats
   const users = getStoredUsers();
   const userIdx = users.findIndex(u => u.id === data.studentId);
   if (userIdx !== -1) {
@@ -359,8 +353,8 @@ export function login(userId: string, passwordInput: string, role: UserRole): Us
   const cleanPw = passwordInput.trim(); 
   
   const user = users.find(u => 
-    u.id.toLowerCase() === cleanId && 
-    (u.password || "") === cleanPw && 
+    u.id.trim().toLowerCase() === cleanId && 
+    (u.password || "").trim() === cleanPw && 
     u.role === role
   );
 

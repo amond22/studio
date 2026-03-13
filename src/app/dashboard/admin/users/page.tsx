@@ -137,27 +137,33 @@ export default function UsersManagementPage() {
   };
 
   const handleSaveUser = () => {
-    if (!newUserId || !newName || !newEmail || !newPassword) {
+    // Trim all inputs to prevent login failures
+    const cleanId = newUserId.trim();
+    const cleanName = newName.trim();
+    const cleanEmail = newEmail.trim();
+    const cleanPassword = newPassword.trim();
+
+    if (!cleanId || !cleanName || !cleanEmail || !cleanPassword) {
       toast({ variant: "destructive", title: "Missing Information", description: "All core fields are required." });
       return;
     }
 
-    if (!isEditMode || (isEditMode && newUserId.toLowerCase() !== originalId.toLowerCase())) {
-      const exists = users.find(u => u.id.toLowerCase() === newUserId.toLowerCase());
+    if (!isEditMode || (isEditMode && cleanId.toLowerCase() !== originalId.toLowerCase())) {
+      const exists = users.find(u => u.id.toLowerCase() === cleanId.toLowerCase());
       if (exists) {
         toast({ variant: "destructive", title: "ID Conflict", description: "This Portal Login ID is already in use." });
         return;
       }
     }
 
-    const finalPhoto = newPhoto || `https://picsum.photos/seed/${newUserId}/150/150`;
+    const finalPhoto = newPhoto || `https://picsum.photos/seed/${cleanId}/150/150`;
 
     const updatedUser: User = {
-      id: newUserId,
-      name: newName,
-      email: newEmail,
+      id: cleanId,
+      name: cleanName,
+      email: cleanEmail,
       role: newRole,
-      password: newPassword,
+      password: cleanPassword,
       faculty: newRole === 'Student' ? newFaculty : undefined,
       semester: newRole === 'Student' ? parseInt(newSemester) : undefined,
       lcNo: newRole === 'Student' ? newLcNo : undefined,
@@ -169,12 +175,11 @@ export default function UsersManagementPage() {
     let updatedUsersList;
     if (isEditMode) {
       updatedUsersList = users.map(u => u.id === originalId ? updatedUser : u);
-      // If ID or Name changed, update subjects as well
-      if (originalId !== newUserId || users.find(u => u.id === originalId)?.name !== newName) {
+      if (originalId !== cleanId || users.find(u => u.id === originalId)?.name !== cleanName) {
         const subjects = getStoredSubjects();
         const updatedSubjects = subjects.map(s => {
           if (s.teacherId === originalId) {
-            return { ...s, teacherId: newUserId, teacherName: newName };
+            return { ...s, teacherId: cleanId, teacherName: cleanName };
           }
           return s;
         });

@@ -77,7 +77,9 @@ export default function SubjectsManagementPage() {
   };
 
   const handleSave = () => {
-    if (!code || !name) return;
+    const cleanCode = code.trim();
+    const cleanName = name.trim();
+    if (!cleanCode || !cleanName) return;
     
     const actualTeacherId = selectedTeacherId === "none" ? "" : selectedTeacherId;
     const teacher = teachers.find(t => t.id === actualTeacherId);
@@ -85,8 +87,8 @@ export default function SubjectsManagementPage() {
     if (isEditMode && editingId) {
       const updated = subjects.map(s => s.id === editingId ? {
         ...s,
-        code,
-        name,
+        code: cleanCode,
+        name: cleanName,
         faculty,
         semester: parseInt(semester),
         teacherId: actualTeacherId,
@@ -98,8 +100,8 @@ export default function SubjectsManagementPage() {
     } else {
       const newSub: Subject = {
         id: Date.now().toString(),
-        code,
-        name,
+        code: cleanCode,
+        name: cleanName,
         faculty,
         semester: parseInt(semester),
         teacherId: actualTeacherId,
@@ -108,7 +110,7 @@ export default function SubjectsManagementPage() {
       const updated = [...subjects, newSub];
       setSubjects(updated);
       saveSubjects(updated);
-      toast({ title: "Subject Registered", description: `${name} has been added.` });
+      toast({ title: "Subject Registered", description: `${cleanName} has been added.` });
     }
     
     setOpen(false);
@@ -116,33 +118,36 @@ export default function SubjectsManagementPage() {
   };
 
   const handleQuickAddTeacher = () => {
-    if (!tName || !tId || !tPassword) {
+    const cleanTName = tName.trim();
+    const cleanTId = tId.trim();
+    const cleanTPassword = tPassword.trim();
+
+    if (!cleanTName || !cleanTId || !cleanTPassword) {
       toast({ variant: "destructive", title: "Error", description: "Please fill core teacher fields." });
       return;
     }
 
     const allUsers = getStoredUsers();
-    if (allUsers.find(u => u.id.toLowerCase() === tId.toLowerCase())) {
+    if (allUsers.find(u => u.id.toLowerCase() === cleanTId.toLowerCase())) {
       toast({ variant: "destructive", title: "ID Conflict", description: "Teacher ID already exists." });
       return;
     }
 
     const newTeacher: User = {
-      id: tId,
-      name: tName,
-      email: tEmail || `${tId}@balmiki.edu`,
+      id: cleanTId,
+      name: cleanTName,
+      email: tEmail.trim() || `${cleanTId}@balmiki.edu`,
       role: 'Teacher',
-      password: tPassword,
-      photo: `https://picsum.photos/seed/${tId}/150/150`
+      password: cleanTPassword,
+      photo: `https://picsum.photos/seed/${cleanTId}/150/150`
     };
 
     const updatedUsers = [...allUsers, newTeacher];
     saveUsers(updatedUsers);
     
-    // Refresh local list and select the new teacher
     const updatedTeachers = updatedUsers.filter(u => u.role === 'Teacher');
     setTeachers(updatedTeachers);
-    setSelectedTeacherId(tId);
+    setSelectedTeacherId(cleanTId);
     
     setTeacherDialogOpen(false);
     setTName("");
@@ -150,7 +155,7 @@ export default function SubjectsManagementPage() {
     setTEmail("");
     setTPassword("");
     
-    toast({ title: "Teacher Created", description: `${tName} is now available for assignment.` });
+    toast({ title: "Teacher Created", description: `${cleanTName} is now available for assignment.` });
   };
 
   const handleDelete = (id: string) => {

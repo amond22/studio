@@ -4,7 +4,7 @@
 import { useState, useEffect } from "react";
 import { 
   BookOpen, Plus, Search, ChevronRight, Eye, Layers, 
-  User as UserIcon, GraduationCap, Trash2, Edit 
+  User as UserIcon, GraduationCap, Trash2, Edit, UserPlus
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,12 +21,13 @@ import {
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { getStoredUsers, User, Subject, getStoredSubjects, saveSubjects } from "@/lib/auth-store";
+import { getStoredUsers, User, Subject, getStoredSubjects, saveSubjects, saveUsers } from "@/lib/auth-store";
 
 export default function SubjectsManagementPage() {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [teachers, setTeachers] = useState<User[]>([]);
   const [open, setOpen] = useState(false);
+  const [teacherDialogOpen, setTeacherDialogOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
@@ -35,18 +36,28 @@ export default function SubjectsManagementPage() {
   const [facultyFilter, setFacultyFilter] = useState("all");
   const { toast } = useToast();
 
-  // Form
+  // Subject Form
   const [code, setCode] = useState("");
   const [name, setName] = useState("");
   const [faculty, setFaculty] = useState("BIT");
   const [semester, setSemester] = useState("1");
   const [selectedTeacherId, setSelectedTeacherId] = useState("none");
 
+  // Quick Teacher Form
+  const [tName, setTName] = useState("");
+  const [tId, setTId] = useState("");
+  const [tEmail, setTEmail] = useState("");
+  const [tPassword, setTPassword] = useState("");
+
   useEffect(() => {
+    refreshData();
+  }, []);
+
+  const refreshData = () => {
     const allUsers = getStoredUsers();
     setTeachers(allUsers.filter(u => u.role === 'Teacher'));
     setSubjects(getStoredSubjects());
-  }, []);
+  };
 
   const handleOpenAdd = () => {
     setIsEditMode(false);
@@ -68,7 +79,6 @@ export default function SubjectsManagementPage() {
   const handleSave = () => {
     if (!code || !name) return;
     
-    // Map "none" back to empty string for storage
     const actualTeacherId = selectedTeacherId === "none" ? "" : selectedTeacherId;
     const teacher = teachers.find(t => t.id === actualTeacherId);
     
@@ -103,6 +113,44 @@ export default function SubjectsManagementPage() {
     
     setOpen(false);
     resetForm();
+  };
+
+  const handleQuickAddTeacher = () => {
+    if (!tName || !tId || !tPassword) {
+      toast({ variant: "destructive", title: "Error", description: "Please fill core teacher fields." });
+      return;
+    }
+
+    const allUsers = getStoredUsers();
+    if (allUsers.find(u => u.id.toLowerCase() === tId.toLowerCase())) {
+      toast({ variant: "destructive", title: "ID Conflict", description: "Teacher ID already exists." });
+      return;
+    }
+
+    const newTeacher: User = {
+      id: tId,
+      name: tName,
+      email: tEmail || `${tId}@balmiki.edu`,
+      role: 'Teacher',
+      password: tPassword,
+      photo: `https://picsum.photos/seed/${tId}/150/150`
+    };
+
+    const updatedUsers = [...allUsers, newTeacher];
+    saveUsers(updatedUsers);
+    
+    // Refresh local list and select the new teacher
+    const updatedTeachers = updatedUsers.filter(u => u.role === 'Teacher');
+    setTeachers(updatedTeachers);
+    setSelectedTeacherId(tId);
+    
+    setTeacherDialogOpen(false);
+    setTName("");
+    setTId("");
+    setTEmail("");
+    setTPassword("");
+    
+    toast({ title: "Teacher Created", description: `${tName} is now available for assignment.` });
   };
 
   const handleDelete = (id: string) => {
@@ -180,13 +228,46 @@ export default function SubjectsManagementPage() {
                 </div>
                 <div className="space-y-2">
                   <Label>Assign Teacher</Label>
-                  <Select value={selectedTeacherId} onValueChange={setSelectedTeacherId}>
-                    <SelectTrigger><SelectValue placeholder="Select Teacher" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Unassigned</SelectItem>
-                      {teachers.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
+                  <div className="flex gap-2">
+                    <Select value={selectedTeacherId} onValueChange={setSelectedTeacherId}>
+                      <SelectTrigger className="flex-1"><SelectValue placeholder="Select Teacher" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Unassigned</SelectItem>
+                        {teachers.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <Dialog open={teacherDialogOpen} onOpenChange={setTeacherDialogOpen}>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" size="icon" className="shrink-0" title="Add New Teacher">
+                          <Plus className="w-4 h-4" />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-xs">
+                        <DialogHeader>
+                          <DialogTitle className="flex items-center gap-2">
+                            <UserPlus className="w-5 h-5" /> Quick Teacher Add
+                          </DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4 py-2">
+                          <div className="space-y-1.5">
+                            <Label className="text-xs">Full Name</Label>
+                            <Input placeholder="John Doe" value={tName} onChange={(e) => setTName(e.target.value)} />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label className="text-xs">Portal ID</Label>
+                            <Input placeholder="jdoe_prof" value={tId} onChange={(e) => setTId(e.target.value)} />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label className="text-xs">Password</Label>
+                            <Input type="text" placeholder="Set password" value={tPassword} onChange={(e) => setTPassword(e.target.value)} />
+                          </div>
+                        </div>
+                        <DialogFooter>
+                          <Button className="w-full" onClick={handleQuickAddTeacher}>Create & Assign</Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
                 </div>
               </div>
             </div>

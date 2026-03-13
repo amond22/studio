@@ -23,18 +23,17 @@ import { Button } from "@/components/ui/button";
 
 interface SidebarProps {
   user: User;
+  onItemClick?: () => void;
 }
 
-export function AppSidebar({ user }: SidebarProps) {
+export function AppSidebar({ user, onItemClick }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [logoUrl, setLogoUrl] = useState("https://picsum.photos/seed/edu1/200/200");
 
   useEffect(() => {
-    // Initial load
     setLogoUrl(getCollegeLogo());
     
-    // Listen for storage changes to update logo instantly
     const handleStorage = () => {
       setLogoUrl(getCollegeLogo());
     };
@@ -45,6 +44,11 @@ export function AppSidebar({ user }: SidebarProps) {
   const handleLogout = () => {
     logout();
     router.push("/login");
+  };
+
+  const handleNavigate = (href: string) => {
+    router.push(href);
+    if (onItemClick) onItemClick();
   };
 
   const menuItems = {
@@ -73,7 +77,7 @@ export function AppSidebar({ user }: SidebarProps) {
   const currentMenu = menuItems[user.role] || [];
 
   return (
-    <div className="flex flex-col h-full bg-white border-r shadow-sm w-64">
+    <div className="flex flex-col h-full bg-white border-r shadow-sm w-full">
       <div className="p-6">
         <div className="flex items-center gap-3 mb-8">
           <div className="w-10 h-10 rounded-lg overflow-hidden border border-primary/10 shadow-sm bg-white shrink-0">
@@ -86,7 +90,7 @@ export function AppSidebar({ user }: SidebarProps) {
           {currentMenu.map((item) => (
             <button
               key={item.href}
-              onClick={() => router.push(item.href)}
+              onClick={() => handleNavigate(item.href)}
               className={cn(
                 "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all group text-left",
                 pathname === item.href 

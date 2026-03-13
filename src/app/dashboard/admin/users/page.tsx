@@ -57,7 +57,6 @@ export default function UsersManagementPage() {
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // Form State for Add/Edit
   const [isEditMode, setIsEditMode] = useState(false);
   const [originalId, setOriginalId] = useState("");
   const [newUserId, setNewUserId] = useState("");
@@ -137,7 +136,6 @@ export default function UsersManagementPage() {
   };
 
   const handleSaveUser = () => {
-    // Trim all inputs to prevent login failures
     const cleanId = newUserId.trim();
     const cleanName = newName.trim();
     const cleanEmail = newEmail.trim();
@@ -206,11 +204,11 @@ export default function UsersManagementPage() {
   });
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <Users className="w-8 h-8 text-primary" />
-          <h1 className="text-3xl font-headline font-bold text-primary">Portal Accounts</h1>
+          <h1 className="text-2xl sm:text-3xl font-headline font-bold text-primary">Portal Accounts</h1>
         </div>
         
         <Button onClick={handleOpenAdd} className="button-hover w-full sm:w-auto">
@@ -219,18 +217,18 @@ export default function UsersManagementPage() {
         </Button>
 
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogContent className="sm:max-w-lg">
-            <DialogHeader>
+          <DialogContent className="sm:max-w-lg w-[95vw] sm:w-full max-h-[90vh] p-0 flex flex-col overflow-hidden">
+            <DialogHeader className="p-6 pb-2">
               <DialogTitle>{isEditMode ? "Modify Account" : "Register New User"}</DialogTitle>
               <DialogDescription>
                 Configure credentials and academic mapping for this user.
               </DialogDescription>
             </DialogHeader>
-            <ScrollArea className="max-h-[70vh] pr-4">
+            <ScrollArea className="flex-1 px-6">
               <div className="space-y-6 py-4">
                 <div className="flex flex-col items-center gap-4">
                   <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-                    <Avatar className="w-24 h-24 border-4 border-primary/10">
+                    <Avatar className="w-20 h-20 sm:w-24 sm:h-24 border-4 border-primary/10">
                       <AvatarImage src={newPhoto || `https://picsum.photos/seed/${newUserId || 'new'}/150/150`} />
                       <AvatarFallback className="bg-primary/5 text-primary">
                         <Camera className="w-8 h-8" />
@@ -248,7 +246,7 @@ export default function UsersManagementPage() {
                   <p className="text-xs font-bold uppercase text-primary tracking-widest flex items-center gap-2">
                     <KeyRound className="w-3.5 h-3.5" /> Portal Credentials
                   </p>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Login ID</Label>
                       <Input placeholder="e.g., smith_prof" value={newUserId} onChange={(e) => setNewUserId(e.target.value)} />
@@ -294,7 +292,7 @@ export default function UsersManagementPage() {
                 {newRole === 'Student' && (
                   <div className="space-y-4 pt-4 border-t">
                     <p className="text-xs font-bold uppercase text-primary tracking-widest">Academic Mapping</p>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label>Faculty</Label>
                         <Select value={newFaculty} onValueChange={setNewFaculty}>
@@ -319,7 +317,7 @@ export default function UsersManagementPage() {
                   </div>
                 )}
 
-                <div className="space-y-4 pt-4 border-t">
+                <div className="space-y-4 pt-4 border-t mb-4">
                   <p className="text-xs font-bold uppercase text-primary tracking-widest">General Information</p>
                   <div className="space-y-2">
                     <Label>Full Name</Label>
@@ -332,9 +330,9 @@ export default function UsersManagementPage() {
                 </div>
               </div>
             </ScrollArea>
-            <DialogFooter className="gap-2">
-              <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-              <Button onClick={handleSaveUser}>{isEditMode ? "Apply Updates" : "Register User"}</Button>
+            <DialogFooter className="p-6 gap-2 flex-col sm:flex-row border-t bg-muted/20">
+              <Button variant="outline" onClick={() => setOpen(false)} className="w-full sm:w-auto">Cancel</Button>
+              <Button onClick={handleSaveUser} className="w-full sm:w-auto">{isEditMode ? "Apply Updates" : "Register User"}</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -366,7 +364,7 @@ export default function UsersManagementPage() {
           />
         </div>
         <Select value={roleFilter} onValueChange={setRoleFilter}>
-          <SelectTrigger className="w-[160px] h-11"><SelectValue placeholder="All Roles" /></SelectTrigger>
+          <SelectTrigger className="w-full lg:w-[160px] h-11"><SelectValue placeholder="All Roles" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Every Role</SelectItem>
             <SelectItem value="Admin">Admins Only</SelectItem>
@@ -378,65 +376,72 @@ export default function UsersManagementPage() {
 
       <Card className="border-none shadow-sm overflow-hidden">
         <CardContent className="p-0">
-          <Table>
-            <TableHeader className="bg-muted/50">
-              <TableRow>
-                <TableHead>User Identity</TableHead>
-                <TableHead>Portal Role</TableHead>
-                <TableHead>Login ID</TableHead>
-                <th className="text-right p-4">Actions</th>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredUsers.map((user) => (
-                <TableRow key={user.id} className="group hover:bg-muted/20">
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <Avatar className="w-10 h-10 border bg-white">
-                        <AvatarImage src={user.photo} />
-                        <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="font-bold text-sm">{user.name}</p>
-                        <p className="text-[10px] text-muted-foreground">{user.email}</p>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={user.role === 'Admin' ? 'default' : user.role === 'Teacher' ? 'accent' : 'secondary'} className="text-[10px] h-5">
-                      {user.role}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="font-mono text-xs uppercase text-primary font-bold">{user.id}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" onClick={() => handleOpenEdit(user)}>
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => setDeleteId(user.id)}>
-                        <UserMinus className="w-4 h-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setSelectedUser(user); setDetailOpen(true); }}>
-                        <Eye className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {filteredUsers.length === 0 && (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader className="bg-muted/50">
                 <TableRow>
-                  <TableCell colSpan={4} className="h-40 text-center text-muted-foreground">
-                    No portal accounts found matching your search.
-                  </TableCell>
+                  <TableHead>User Identity</TableHead>
+                  <TableHead className="hidden sm:table-cell">Portal Role</TableHead>
+                  <TableHead className="hidden md:table-cell">Login ID</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              )}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {filteredUsers.map((user) => (
+                  <TableRow key={user.id} className="group hover:bg-muted/20">
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <Avatar className="w-8 h-8 sm:w-10 sm:h-10 border bg-white">
+                          <AvatarImage src={user.photo} />
+                          <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-bold text-sm">{user.name}</p>
+                          <p className="text-[10px] text-muted-foreground hidden xs:block">{user.email}</p>
+                          <div className="sm:hidden mt-1">
+                            <Badge variant={user.role === 'Admin' ? 'default' : user.role === 'Teacher' ? 'accent' : 'secondary'} className="text-[8px] h-4">
+                              {user.role}
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="hidden sm:table-cell">
+                      <Badge variant={user.role === 'Admin' ? 'default' : user.role === 'Teacher' ? 'accent' : 'secondary'} className="text-[10px] h-5">
+                        {user.role}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell font-mono text-xs uppercase text-primary font-bold">{user.id}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-1">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" onClick={() => handleOpenEdit(user)}>
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => setDeleteId(user.id)}>
+                          <UserMinus className="w-4 h-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setSelectedUser(user); setDetailOpen(true); }}>
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {filteredUsers.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={4} className="h-40 text-center text-muted-foreground">
+                      No portal accounts found matching your search.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
 
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md w-[95vw] sm:w-full">
           {selectedUser && (
             <>
               <DialogHeader>
@@ -444,7 +449,7 @@ export default function UsersManagementPage() {
                 <DialogDescription>Full access logs and identity data</DialogDescription>
               </DialogHeader>
               <div className="flex flex-col items-center gap-6 py-4">
-                <Avatar className="w-24 h-24 border-4 border-primary/10 shadow-lg">
+                <Avatar className="w-20 h-20 sm:w-24 sm:h-24 border-4 border-primary/10 shadow-lg">
                   <AvatarImage src={selectedUser.photo} />
                   <AvatarFallback>{selectedUser.name.charAt(0)}</AvatarFallback>
                 </Avatar>
@@ -452,7 +457,7 @@ export default function UsersManagementPage() {
                   <div className="grid grid-cols-2 gap-3">
                     <div className="p-3 bg-primary/5 border border-primary/10 rounded-xl text-center">
                       <p className="text-[10px] font-bold uppercase text-primary mb-1">Portal ID</p>
-                      <p className="text-sm font-bold uppercase">{selectedUser.id}</p>
+                      <p className="text-sm font-bold uppercase truncate">{selectedUser.id}</p>
                     </div>
                     <div className="p-3 bg-primary/5 border border-primary/10 rounded-xl text-center">
                       <p className="text-[10px] font-bold uppercase text-primary mb-1">Auth Type</p>
@@ -484,9 +489,9 @@ export default function UsersManagementPage() {
                       </div>
                     </div>
                   )}
-                  <div className="p-3 bg-muted/50 rounded-xl text-xs">
+                  <div className="p-3 bg-muted/50 rounded-xl text-xs overflow-hidden">
                     <p className="font-bold text-muted-foreground uppercase mb-1">Registered Email</p>
-                    <p className="font-medium">{selectedUser.email}</p>
+                    <p className="font-medium truncate">{selectedUser.email}</p>
                   </div>
                 </div>
               </div>

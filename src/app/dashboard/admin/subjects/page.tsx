@@ -40,7 +40,7 @@ export default function SubjectsManagementPage() {
   const [name, setName] = useState("");
   const [faculty, setFaculty] = useState("BIT");
   const [semester, setSemester] = useState("1");
-  const [selectedTeacherId, setSelectedTeacherId] = useState("");
+  const [selectedTeacherId, setSelectedTeacherId] = useState("none");
 
   useEffect(() => {
     const allUsers = getStoredUsers();
@@ -61,13 +61,16 @@ export default function SubjectsManagementPage() {
     setName(sub.name);
     setFaculty(sub.faculty);
     setSemester(sub.semester.toString());
-    setSelectedTeacherId(sub.teacherId || "");
+    setSelectedTeacherId(sub.teacherId || "none");
     setOpen(true);
   };
 
   const handleSave = () => {
     if (!code || !name) return;
-    const teacher = teachers.find(t => t.id === selectedTeacherId);
+    
+    // Map "none" back to empty string for storage
+    const actualTeacherId = selectedTeacherId === "none" ? "" : selectedTeacherId;
+    const teacher = teachers.find(t => t.id === actualTeacherId);
     
     if (isEditMode && editingId) {
       const updated = subjects.map(s => s.id === editingId ? {
@@ -76,7 +79,7 @@ export default function SubjectsManagementPage() {
         name,
         faculty,
         semester: parseInt(semester),
-        teacherId: selectedTeacherId,
+        teacherId: actualTeacherId,
         teacherName: teacher ? teacher.name : "Unassigned"
       } : s);
       setSubjects(updated);
@@ -89,7 +92,7 @@ export default function SubjectsManagementPage() {
         name,
         faculty,
         semester: parseInt(semester),
-        teacherId: selectedTeacherId,
+        teacherId: actualTeacherId,
         teacherName: teacher ? teacher.name : "Unassigned"
       };
       const updated = [...subjects, newSub];
@@ -114,7 +117,7 @@ export default function SubjectsManagementPage() {
     setName("");
     setFaculty("BIT");
     setSemester("1");
-    setSelectedTeacherId("");
+    setSelectedTeacherId("none");
     setEditingId(null);
   };
 
@@ -178,9 +181,9 @@ export default function SubjectsManagementPage() {
                 <div className="space-y-2">
                   <Label>Assign Teacher</Label>
                   <Select value={selectedTeacherId} onValueChange={setSelectedTeacherId}>
-                    <SelectTrigger><SelectValue placeholder="Select Faculty" /></SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder="Select Teacher" /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Unassigned</SelectItem>
+                      <SelectItem value="none">Unassigned</SelectItem>
                       {teachers.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
                     </SelectContent>
                   </Select>

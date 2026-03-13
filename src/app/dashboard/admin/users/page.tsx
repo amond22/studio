@@ -6,7 +6,8 @@ import {
   Users, Plus, Mail, Shield, UserPlus, GraduationCap, 
   Search, FileBarChart, Filter, ChevronRight, Eye, 
   MapPin, Hash, BarChart3, Edit, Save, X, KeyRound, 
-  Upload, Camera, Trash2, BookOpen, UserMinus, Phone 
+  Upload, Camera, Trash2, BookOpen, UserMinus, Phone,
+  Layers
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -41,7 +42,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { User, getStoredUsers, saveUsers, UserRole, deleteUser, getStoredSubjects, Subject, saveSubjects } from "@/lib/auth-store";
+import { User, getStoredUsers, saveUsers, UserRole, deleteUser, getStoredSubjects, Subject, saveSubjects, getStoredFaculties, Faculty } from "@/lib/auth-store";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -49,12 +50,15 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 export default function UsersManagementPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [allSubjects, setAllSubjects] = useState<Subject[]>([]);
+  const [faculties, setFaculties] = useState<Faculty[]>([]);
   const [open, setOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
+  const [facultyFilter, setFacultyFilter] = useState<string>("all");
+  const [semesterFilter, setSemesterFilter] = useState<string>("all");
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [isEditMode, setIsEditMode] = useState(false);
@@ -76,6 +80,7 @@ export default function UsersManagementPage() {
   useEffect(() => {
     setUsers(getStoredUsers());
     setAllSubjects(getStoredSubjects());
+    setFaculties(getStoredFaculties());
   }, []);
 
   const resetForm = () => {
@@ -204,7 +209,10 @@ export default function UsersManagementPage() {
     const matchesSearch = u.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
                           u.id.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesRole = roleFilter === "all" || u.role === roleFilter;
-    return matchesSearch && matchesRole;
+    const matchesFaculty = facultyFilter === "all" || u.faculty === facultyFilter;
+    const matchesSemester = semesterFilter === "all" || u.semester?.toString() === semesterFilter;
+    
+    return matchesSearch && matchesRole && matchesFaculty && matchesSemester;
   });
 
   return (
@@ -282,9 +290,9 @@ export default function UsersManagementPage() {
                         <Select value={newFaculty} onValueChange={setNewFaculty}>
                           <SelectTrigger><SelectValue /></SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="BIT">BIT</SelectItem>
-                            <SelectItem value="BBA">BBA</SelectItem>
-                            <SelectItem value="BHM">BHM</SelectItem>
+                            {faculties.map(f => (
+                              <SelectItem key={f.id} value={f.id}>{f.id}</SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                       </div>
@@ -341,25 +349,53 @@ export default function UsersManagementPage() {
         </AlertDialog>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-          <Input 
-            placeholder="Search by name or Login ID..." 
-            className="pl-10 h-11" 
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+      <div className="space-y-4">
+        <div className="flex flex-col lg:flex-row gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <Input 
+              placeholder="Search by name or Login ID..." 
+              className="pl-10 h-11" 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Select value={roleFilter} onValueChange={setRoleFilter}>
+              <SelectTrigger className="w-full sm:w-[160px] h-11"><SelectValue placeholder="All Roles" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Every Role</SelectItem>
+                <SelectItem value="Admin">Admins Only</SelectItem>
+                <SelectItem value="Teacher">Faculty Only</SelectItem>
+                <SelectItem value="Student">Students Only</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {(roleFilter === "all" || roleFilter === "Student") && (
+              <>
+                <Select value={facultyFilter} onValueChange={setFacultyFilter}>
+                  <SelectTrigger className="w-full sm:w-[140px] h-11"><SelectValue placeholder="Faculty" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Faculties</SelectItem>
+                    {faculties.map(f => (
+                      <SelectItem key={f.id} value={f.id}>{f.id}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select value={semesterFilter} onValueChange={setSemesterFilter}>
+                  <SelectTrigger className="w-full sm:w-[140px] h-11"><SelectValue placeholder="Semester" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Sems</SelectItem>
+                    {[1,2,3,4,5,6,7,8].map(s => (
+                      <SelectItem key={s} value={s.toString()}>Sem {s}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </>
+            )}
+          </div>
         </div>
-        <Select value={roleFilter} onValueChange={setRoleFilter}>
-          <SelectTrigger className="w-full lg:w-[160px] h-11"><SelectValue placeholder="All Roles" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Every Role</SelectItem>
-            <SelectItem value="Admin">Admins Only</SelectItem>
-            <SelectItem value="Teacher">Faculty Only</SelectItem>
-            <SelectItem value="Student">Students Only</SelectItem>
-          </SelectContent>
-        </Select>
       </div>
 
       <Card className="border-none shadow-sm overflow-hidden">
@@ -369,7 +405,7 @@ export default function UsersManagementPage() {
               <TableHeader className="bg-muted/50">
                 <TableRow>
                   <TableHead>User Identity</TableHead>
-                  <TableHead className="hidden sm:table-cell">Portal Role</TableHead>
+                  <TableHead className="hidden sm:table-cell">Academic Path</TableHead>
                   <TableHead className="hidden md:table-cell">Contact/ID</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -390,9 +426,16 @@ export default function UsersManagementPage() {
                       </div>
                     </TableCell>
                     <TableCell className="hidden sm:table-cell">
-                      <Badge variant={user.role === 'Admin' ? 'default' : user.role === 'Teacher' ? 'accent' : 'secondary'} className="text-[10px] h-5">
-                        {user.role}
-                      </Badge>
+                      <div className="flex flex-col gap-1">
+                        <Badge variant={user.role === 'Admin' ? 'default' : user.role === 'Teacher' ? 'accent' : 'secondary'} className="text-[10px] h-5 w-fit">
+                          {user.role}
+                        </Badge>
+                        {user.role === 'Student' && (
+                          <span className="text-[10px] text-muted-foreground font-medium">
+                            {user.faculty} &bull; Sem {user.semester}
+                          </span>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
                        <div className="flex flex-col">
@@ -455,11 +498,15 @@ export default function UsersManagementPage() {
                   {selectedUser.role === 'Student' && (
                     <div className="space-y-2">
                       <div className="p-3 bg-muted rounded-xl flex justify-between items-center text-xs">
-                        <span className="font-bold text-muted-foreground">PARENT CONTACT</span>
+                        <span className="font-bold text-muted-foreground flex items-center gap-1"><GraduationCap className="w-3 h-3" /> ACADEMIC PATH</span>
+                        <span className="font-bold">{selectedUser.faculty} SEM {selectedUser.semester}</span>
+                      </div>
+                      <div className="p-3 bg-muted rounded-xl flex justify-between items-center text-xs">
+                        <span className="font-bold text-muted-foreground flex items-center gap-1"><Phone className="w-3 h-3" /> PARENT CONTACT</span>
                         <span className="font-bold">{selectedUser.parentContact || "N/A"}</span>
                       </div>
                       <div className="p-3 bg-muted rounded-xl flex justify-between items-center text-xs">
-                        <span className="font-bold text-muted-foreground">ATTENDANCE</span>
+                        <span className="font-bold text-muted-foreground flex items-center gap-1"><BarChart3 className="w-3 h-3" /> ATTENDANCE</span>
                         <span className="font-bold text-primary">{selectedUser.attendanceRate}%</span>
                       </div>
                     </div>

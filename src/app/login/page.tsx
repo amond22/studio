@@ -36,6 +36,7 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
 
+    // Minor artificial delay for realistic auth feel
     await new Promise((resolve) => setTimeout(resolve, 800));
 
     const user = login(userId, password, role);
@@ -149,7 +150,8 @@ export default function LoginPage() {
                   <ul className="text-[11px] text-orange-800 space-y-1 ml-1 font-medium">
                     <li>• Admin: <strong>admin</strong> / <strong>admin-password</strong></li>
                     <li>• Teacher: <strong>teacher</strong> / <strong>teacher-password</strong></li>
-                    <li>• IDs are case-insensitive. Passwords are flexible.</li>
+                    <li>• Student: <strong>student</strong> / <strong>student-password</strong></li>
+                    <li>• IDs are case-insensitive. Passwords are specific.</li>
                   </ul>
                   <Button 
                     type="button" 

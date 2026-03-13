@@ -296,17 +296,20 @@ export function recordScanAttendance(data: {
   const sessions = getQRSessions();
   const today = new Date().toISOString().split('T')[0];
   
+  // Find valid session by token (trimmed comparison)
   const session = sessions.find(s => s.token.trim() === data.token.trim());
   
   if (!session) {
     return { success: false, message: "Invalid session token. Please try again." };
   }
   
+  // Check Expiry
   const now = new Date();
   if (new Date(session.expiresAt) < now) {
     return { success: false, message: "This QR code has expired (60s limit)." };
   }
 
+  // Check Duplicate for Today
   const alreadyMarked = records.find(r => 
     r.studentId === data.studentId && 
     r.subjectId === data.subjectId && 
@@ -334,6 +337,7 @@ export function recordScanAttendance(data: {
   const updatedRecords = [...records, newRecord];
   saveAttendanceRecords(updatedRecords);
 
+  // Update Attendance Rate
   const users = getStoredUsers();
   const userIdx = users.findIndex(u => u.id === data.studentId);
   if (userIdx !== -1) {
@@ -349,6 +353,8 @@ export function recordScanAttendance(data: {
 
 export function login(userId: string, passwordInput: string, role: UserRole): User | null {
   const users = getStoredUsers();
+  
+  // Clean inputs for robust matching
   const cleanId = userId.trim().toLowerCase();
   const cleanPw = passwordInput.trim(); 
   

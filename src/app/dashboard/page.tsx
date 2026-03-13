@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { User, getCurrentUser } from "@/lib/auth-store";
+import { User, getCurrentUser, getStoredUsers, getStoredSubjects, getAttendanceRecords, AttendanceRecord } from "@/lib/auth-store";
 import { motion } from "framer-motion";
 import { 
   Users, 
@@ -40,6 +40,14 @@ interface ScheduledClass {
 
 export default function DashboardHome() {
   const [user, setUser] = useState<User | null>(null);
+  const [stats, setStats] = useState({
+    totalStudents: 0,
+    totalTeachers: 0,
+    attendanceRate: 0,
+    activeSubjects: 0
+  });
+  const [studentRecords, setStudentRecords] = useState<AttendanceRecord[]>([]);
+  
   const [scheduledClasses, setScheduledClasses] = useState<ScheduledClass[]>([
     { startTime: "09:00 AM", endTime: "10:30 AM", subject: "Database Systems", room: "L-202" },
     { startTime: "11:30 AM", endTime: "01:00 PM", subject: "Object Oriented Programming", room: "L-101" }
@@ -50,7 +58,37 @@ export default function DashboardHome() {
   const router = useRouter();
 
   useEffect(() => {
-    setUser(getCurrentUser());
+    const currentUser = getCurrentUser();
+    setUser(currentUser);
+
+    if (currentUser) {
+      const allUsers = getStoredUsers();
+      const allSubjects = getStoredSubjects();
+      const allRecords = getAttendanceRecords();
+
+      // Calculate Stats
+      const students = allUsers.filter(u => u.role === 'Student');
+      const teachers = allUsers.filter(u => u.role === 'Teacher');
+      const avgRate = students.length > 0 
+        ? students.reduce((acc, s) => acc + (s.attendanceRate || 0), 0) / students.length 
+        : 0;
+
+      setStats({
+        totalStudents: students.length,
+        totalTeachers: teachers.length,
+        attendanceRate: Math.round(avgRate),
+        activeSubjects: allSubjects.length
+      });
+
+      // Filter student records if applicable
+      if (currentUser.role === 'Student') {
+        const myRecords = allRecords
+          .filter(r => r.studentId === currentUser.id)
+          .sort((a, b) => new Date(b.timestamp || b.date).getTime() - new Date(a.timestamp || a.date).getTime())
+          .slice(0, 5);
+        setStudentRecords(myRecords);
+      }
+    }
   }, []);
 
   if (!user) return null;
@@ -91,8 +129,8 @@ export default function DashboardHome() {
             <Users className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">1,284</div>
-            <p className="text-xs text-muted-foreground">+12% from last month</p>
+            <div className="text-2xl font-bold">{stats.totalStudents}</div>
+            <p className="text-xs text-muted-foreground">Registered in database</p>
           </CardContent>
         </Card>
       </motion.div>
@@ -103,20 +141,20 @@ export default function DashboardHome() {
             <GraduationCap className="h-4 w-4 text-accent" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">86</div>
-            <p className="text-xs text-muted-foreground">3 new recently added</p>
+            <div className="text-2xl font-bold">{stats.totalTeachers}</div>
+            <p className="text-xs text-muted-foreground">Active faculty members</p>
           </CardContent>
         </Card>
       </motion.div>
       <motion.div variants={item}>
         <Card className="border-none shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Attendance Rate</CardTitle>
+            <CardTitle className="text-sm font-medium">System Attendance</CardTitle>
             <TrendingUp className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">94.2%</div>
-            <p className="text-xs text-muted-foreground">Highest this semester</p>
+            <div className="text-2xl font-bold">{stats.attendanceRate}%</div>
+            <p className="text-xs text-muted-foreground">Average across all students</p>
           </CardContent>
         </Card>
       </motion.div>
@@ -127,8 +165,8 @@ export default function DashboardHome() {
             <BookOpen className="h-4 w-4 text-orange-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">42</div>
-            <p className="text-xs text-muted-foreground">Across 3 faculties</p>
+            <div className="text-2xl font-bold">{stats.activeSubjects}</div>
+            <p className="text-xs text-muted-foreground">Currently offered</p>
           </CardContent>
         </Card>
       </motion.div>
@@ -266,7 +304,7 @@ export default function DashboardHome() {
         </CardHeader>
         <CardContent>
           <p className="text-primary-foreground/80 text-sm mb-6">
-            Make sure you are connected to Balmiki_Lincoln_WiFi to mark your attendance.
+            Mark your attendance for the current session. Make sure you are within class range.
           </p>
           <Button variant="secondary" className="w-full button-hover font-bold" onClick={() => router.push('/dashboard/student/scan')}>
             Open Scanner
@@ -276,35 +314,40 @@ export default function DashboardHome() {
       
       <Card className="col-span-1 md:col-span-2 border-none shadow-sm">
         <CardHeader>
-          <CardTitle>Recent Attendance</CardTitle>
+          <CardTitle>Recent Attendance History</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {[
-              { status: 'Present', subject: 'Cloud Computing', date: 'Today', time: '10:15 AM' },
-              { status: 'Present', subject: 'Digital Logic', date: 'Yesterday', time: '09:02 AM' },
-              { status: 'Late', subject: 'Java Lab', date: 'Mar 12, 2024', time: '11:45 AM' }
-            ].map((rec, idx) => (
-              <div key={idx} className="flex items-center justify-between p-3 border-b last:border-0">
-                <div className="flex items-center gap-4">
-                  {rec.status === 'Present' ? (
-                    <CheckCircle2 className="w-5 h-5 text-green-500" />
-                  ) : (
-                    <Clock className="w-5 h-5 text-orange-500" />
-                  )}
-                  <div>
-                    <p className="font-medium">{rec.subject}</p>
-                    <p className="text-xs text-muted-foreground">{rec.date} at {rec.time}</p>
+            {studentRecords.length > 0 ? (
+              studentRecords.map((rec, idx) => (
+                <div key={idx} className="flex items-center justify-between p-3 border-b last:border-0">
+                  <div className="flex items-center gap-4">
+                    {rec.status === 'Present' ? (
+                      <CheckCircle2 className="w-5 h-5 text-green-500" />
+                    ) : (
+                      <Clock className="w-5 h-5 text-orange-500" />
+                    )}
+                    <div>
+                      <p className="font-medium">{rec.subjectName}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {rec.date} {rec.timestamp ? `at ${new Date(rec.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''}
+                      </p>
+                    </div>
                   </div>
+                  <span className={cn(
+                    "px-2 py-1 rounded text-[10px] font-bold uppercase",
+                    rec.status === 'Present' ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"
+                  )}>
+                    {rec.status}
+                  </span>
                 </div>
-                <span className={cn(
-                  "px-2 py-1 rounded text-[10px] font-bold uppercase",
-                  rec.status === 'Present' ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"
-                )}>
-                  {rec.status}
-                </span>
+              ))
+            ) : (
+              <div className="text-center py-12 text-muted-foreground">
+                <CalendarIcon className="w-8 h-8 mx-auto mb-2 opacity-20" />
+                <p className="text-sm">No attendance records found yet.</p>
               </div>
-            ))}
+            )}
           </div>
         </CardContent>
       </Card>

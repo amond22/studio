@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState, useRef } from "react";
@@ -6,11 +5,12 @@ import { Html5Qrcode } from "html5-qrcode";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Scan, RefreshCw, AlertCircle, XCircle } from "lucide-react";
+import { CheckCircle2, Scan, RefreshCw, AlertCircle, XCircle, Home } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getCurrentUser, recordScanAttendance } from "@/lib/auth-store";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useRouter } from "next/navigation";
 
 export default function StudentScannerPage() {
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
@@ -21,6 +21,7 @@ export default function StudentScannerPage() {
   const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
   const isInitializingRef = useRef(false);
   const { toast } = useToast();
+  const router = useRouter();
 
   const playSound = (type: 'success' | 'error') => {
     try {
@@ -56,12 +57,10 @@ export default function StudentScannerPage() {
       const html5QrCode = new Html5Qrcode("reader");
       html5QrCodeRef.current = html5QrCode;
 
-      // Distance-optimized configuration
       const config = { 
-        fps: 30, // Higher FPS for faster movement detection
+        fps: 30,
         qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
           const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-          // Larger box to help with distance scanning
           const boxSize = Math.floor(minEdge * 0.75);
           return { width: boxSize, height: boxSize };
         },
@@ -107,7 +106,6 @@ export default function StudentScannerPage() {
         return;
       }
 
-      // Security Checks: Semester/Faculty Match
       if (user.faculty !== qrData.faculty || user.semester?.toString() !== qrData.semester?.toString()) {
         playSound('error');
         toast({
@@ -166,14 +164,12 @@ export default function StudentScannerPage() {
               
               <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-10">
                 <div className="w-[75%] h-[75%] border-4 border-white/20 rounded-[2rem] relative overflow-hidden backdrop-blur-[1px]">
-                  {/* High-visibility scanning line */}
                   <motion.div 
                     animate={{ top: ["0%", "100%", "0%"] }}
                     transition={{ duration: 2.5, repeat: Infinity, ease: "linear" }}
                     className="absolute left-0 right-0 h-1 bg-primary/80 shadow-[0_0_20px_rgba(var(--primary),1)] z-20"
                   />
                   
-                  {/* Reinforced corner brackets for distance targeting */}
                   <div className="absolute top-0 left-0 w-12 h-12 border-t-4 border-l-4 border-primary rounded-tl-xl" />
                   <div className="absolute top-0 right-0 w-12 h-12 border-t-4 border-r-4 border-primary rounded-tr-xl" />
                   <div className="absolute bottom-0 left-0 w-12 h-12 border-b-4 border-l-4 border-primary rounded-bl-xl" />
@@ -228,10 +224,16 @@ export default function StudentScannerPage() {
                 </div>
               </div>
 
-              <Button className="w-full h-14 rounded-2xl font-bold text-lg button-hover" onClick={() => { setScanResult(null); startScanner(); }}>
-                <Scan className="w-5 h-5 mr-2" />
-                Scan New QR
-              </Button>
+              <div className="flex flex-col gap-3">
+                <Button className="w-full h-14 rounded-2xl font-bold text-lg button-hover" onClick={() => { setScanResult(null); startScanner(); }}>
+                  <Scan className="w-5 h-5 mr-2" />
+                  Scan Another QR
+                </Button>
+                <Button variant="outline" className="w-full h-14 rounded-2xl font-bold text-lg button-hover" onClick={() => router.push('/dashboard')}>
+                  <Home className="w-5 h-5 mr-2" />
+                  Done
+                </Button>
+              </div>
             </Card>
           </motion.div>
         )}

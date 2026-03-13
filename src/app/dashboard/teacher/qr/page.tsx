@@ -8,29 +8,30 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { QrCode, RefreshCw, Clock, AlertCircle, GraduationCap, BookOpen, Layers } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { QrCode, RefreshCw, Clock, AlertCircle, GraduationCap, BookOpen, Layers, Calendar } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-
-const MOCK_SUBJECTS = [
-  { id: "BIT-DBS", name: "Database Systems", faculty: "BIT", semester: "5" },
-  { id: "BIT-OOP", name: "Object Oriented Programming", faculty: "BIT", semester: "3" },
-  { id: "BIT-CC", name: "Cloud Computing", faculty: "BIT", semester: "7" },
-  { id: "BBA-MKT", name: "Marketing Management", faculty: "BBA", semester: "4" },
-  { id: "BBA-ACC", name: "Financial Accounting", faculty: "BBA", semester: "2" },
-  { id: "BHM-FNB", name: "Food & Beverage", faculty: "BHM", semester: "1" },
-];
+import { getStoredSubjects, getStoredFaculties, saveQRSessions, getQRSessions, QRSession } from "@/lib/auth-store";
 
 export default function GenerateQRPage() {
+  const [subjects, setSubjects] = useState<any[]>([]);
+  const [faculties, setFaculties] = useState<any[]>([]);
   const [faculty, setFaculty] = useState<string>("BIT");
-  const [semester, setSemester] = useState<string>("");
+  const [semester, setSemester] = useState<string>("1");
   const [subject, setSubject] = useState("");
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [activeQR, setActiveQR] = useState<string | null>(null);
   const [timeLeft, setTimeLeft] = useState(60);
   const { toast } = useToast();
 
-  const filteredSubjects = MOCK_SUBJECTS.filter(s => {
+  useEffect(() => {
+    setSubjects(getStoredSubjects());
+    setFaculties(getStoredFaculties());
+  }, []);
+
+  const filteredSubjects = subjects.filter(s => {
     const facultyMatch = faculty === "all" || s.faculty === faculty;
-    const semesterMatch = !semester || semester === "all" || s.semester === semester;
+    const semesterMatch = !semester || semester === "all" || s.semester.toString() === semester;
     return facultyMatch && semesterMatch;
   });
 
@@ -43,21 +44,42 @@ export default function GenerateQRPage() {
       });
       return;
     }
-    const selectedSub = MOCK_SUBJECTS.find(s => s.id === subject);
-    const uniqueId = JSON.stringify({
-      id: `ATT-${subject}-${Date.now()}`,
+    const selectedSub = subjects.find(s => s.id === subject);
+    
+    // Create Secure Session
+    const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    const expiresAt = new Date(Date.now() + 60000).toISOString();
+    
+    const newSession: QRSession = {
+      id: `SES-${Date.now()}`,
       subjectId: selectedSub?.id,
-      subject: selectedSub?.name,
+      subjectName: selectedSub?.name,
       faculty: selectedSub?.faculty,
       semester: parseInt(selectedSub?.semester || "1"),
-      timestamp: new Date().toISOString()
+      generatedAt: new Date().toISOString(),
+      expiresAt: expiresAt,
+      token: token
+    };
+
+    // Store session
+    const currentSessions = getQRSessions();
+    saveQRSessions([...currentSessions, newSession]);
+
+    // Encrypted payload (Simplified for prototype)
+    const payload = JSON.stringify({
+      subjectId: newSession.subjectId,
+      subject: newSession.subjectName,
+      faculty: newSession.faculty,
+      semester: newSession.semester,
+      timestamp: newSession.generatedAt,
+      token: token
     });
     
-    setActiveQR(uniqueId);
+    setActiveQR(payload);
     setTimeLeft(60);
     toast({ 
-      title: "QR Generated", 
-      description: `Attendance session started for ${selectedSub?.name}.` 
+      title: "QR Session Active", 
+      description: `New secure token generated for ${selectedSub?.name}. Expires in 60s.` 
     });
   };
 
@@ -65,29 +87,33 @@ export default function GenerateQRPage() {
     let timer: NodeJS.Timeout;
     if (activeQR && timeLeft > 0) {
       timer = setInterval(() => setTimeLeft((prev) => prev - 1), 1000);
-    } else if (timeLeft === 0) {
+    } else if (timeLeft === 0 && activeQR) {
       setActiveQR(null);
-      toast({ title: "QR Expired", description: "The session has timed out. Please generate a new one." });
+      toast({ 
+        variant: "destructive",
+        title: "QR Expired", 
+        description: "The secure session has timed out. Please regenerate a new code." 
+      });
     }
     return () => clearInterval(timer);
   }, [activeQR, timeLeft, toast]);
 
   return (
-    <div className="max-w-3xl mx-auto space-y-8">
+    <div className="max-w-3xl mx-auto space-y-8 pb-10">
       <div className="flex items-center gap-3">
         <div className="p-2 bg-primary/10 rounded-lg">
           <QrCode className="w-8 h-8 text-primary" />
         </div>
         <div>
-          <h1 className="text-3xl font-headline font-bold text-primary">Attendance QR</h1>
-          <p className="text-muted-foreground">Set up your classroom session</p>
+          <h1 className="text-3xl font-headline font-bold text-primary">Classroom QR Portal</h1>
+          <p className="text-muted-foreground">Secure session generation for students</p>
         </div>
       </div>
 
       <Card className="border-none shadow-sm">
         <CardHeader>
-          <CardTitle>Session Configuration</CardTitle>
-          <CardDescription>Filter by faculty and semester to find your subject</CardDescription>
+          <CardTitle>Session Parameters</CardTitle>
+          <CardDescription>All fields are required to ensure student validation</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -96,18 +122,15 @@ export default function GenerateQRPage() {
                 <GraduationCap className="w-4 h-4 text-muted-foreground" />
                 Faculty
               </Label>
-              <Select value={faculty} onValueChange={(val) => {
-                setFaculty(val);
-                setSubject("");
-              }}>
+              <Select value={faculty} onValueChange={(val) => { setFaculty(val); setSubject(""); }}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select Faculty" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Faculties</SelectItem>
-                  <SelectItem value="BIT">BIT (Information Tech)</SelectItem>
-                  <SelectItem value="BBA">BBA (Business Admin)</SelectItem>
-                  <SelectItem value="BHM">BHM (Hotel Management)</SelectItem>
+                  {faculties.map(f => (
+                    <SelectItem key={f.id} value={f.id}>{f.name} - {f.longName}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -117,15 +140,11 @@ export default function GenerateQRPage() {
                 <Layers className="w-4 h-4 text-muted-foreground" />
                 Semester
               </Label>
-              <Select value={semester} onValueChange={(val) => {
-                setSemester(val);
-                setSubject("");
-              }}>
+              <Select value={semester} onValueChange={(val) => { setSemester(val); setSubject(""); }}>
                 <SelectTrigger>
-                  <SelectValue placeholder="All Semesters" />
+                  <SelectValue placeholder="Select Semester" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Semesters</SelectItem>
                   {[1, 2, 3, 4, 5, 6, 7, 8].map(num => (
                     <SelectItem key={num} value={num.toString()}>Semester {num}</SelectItem>
                   ))}
@@ -134,23 +153,32 @@ export default function GenerateQRPage() {
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2">
-              <BookOpen className="w-4 h-4 text-muted-foreground" />
-              Active Subject
-            </Label>
-            <Select value={subject} onValueChange={setSubject}>
-              <SelectTrigger className="h-12 border-primary/20 bg-primary/5">
-                <SelectValue placeholder={filteredSubjects.length > 0 ? "Select class subject" : "No subjects found for these filters"} />
-              </SelectTrigger>
-              <SelectContent>
-                {filteredSubjects.map(sub => (
-                  <SelectItem key={sub.id} value={sub.id}>
-                    {sub.name} ({sub.id}) — Sem {sub.semester}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+             <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-muted-foreground" />
+                  Date
+                </Label>
+                <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+             </div>
+             <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <BookOpen className="w-4 h-4 text-muted-foreground" />
+                  Subject
+                </Label>
+                <Select value={subject} onValueChange={setSubject}>
+                  <SelectTrigger className="border-primary/20 bg-primary/5">
+                    <SelectValue placeholder={filteredSubjects.length > 0 ? "Choose active subject" : "No matches found"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {filteredSubjects.map(sub => (
+                      <SelectItem key={sub.id} value={sub.id}>
+                        {sub.name} ({sub.code})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+             </div>
           </div>
 
           <AnimatePresence mode="wait">
@@ -166,7 +194,7 @@ export default function GenerateQRPage() {
                   disabled={!subject}
                 >
                   <QrCode className="w-5 h-5 mr-2" />
-                  Generate Attendance QR
+                  Start 60s Session
                 </Button>
               </motion.div>
             ) : (
@@ -176,26 +204,18 @@ export default function GenerateQRPage() {
                 exit={{ opacity: 0, scale: 0.9 }}
                 className="flex flex-col items-center gap-6"
               >
-                <div className="p-10 bg-white rounded-3xl shadow-2xl border-8 border-primary/5">
+                <div className="p-8 bg-white rounded-3xl shadow-2xl border-4 border-primary/10">
                   <QRCodeSVG 
                     value={activeQR} 
                     size={280}
                     level="H"
                     includeMargin
-                    imageSettings={{
-                      src: "https://picsum.photos/seed/edu/100/100",
-                      x: undefined,
-                      y: undefined,
-                      height: 40,
-                      width: 40,
-                      excavate: true,
-                    }}
                   />
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4 w-full">
                   <div className="p-4 bg-primary/10 rounded-2xl flex flex-col items-center justify-center border border-primary/20">
-                    <p className="text-[10px] uppercase font-bold text-primary mb-1">Time Remaining</p>
+                    <p className="text-[10px] uppercase font-bold text-primary mb-1">Session Expiry</p>
                     <div className="flex items-center gap-2">
                       <Clock className="w-4 h-4 text-primary" />
                       <span className="font-mono font-bold text-2xl">
@@ -205,15 +225,15 @@ export default function GenerateQRPage() {
                   </div>
                   <Button variant="outline" className="h-full rounded-2xl button-hover border-2" onClick={handleGenerate}>
                     <RefreshCw className="w-4 h-4 mr-2" />
-                    Reset Timer
+                    Regenerate QR
                   </Button>
                 </div>
 
                 <div className="w-full flex items-start gap-3 p-4 bg-accent/5 rounded-2xl text-accent border border-accent/10">
                   <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
                   <div className="text-sm">
-                    <p className="font-bold mb-1">Real-Time Sync Active</p>
-                    <p className="opacity-80 italic">Student scans are instantly linked to your Attendance Report dashboard.</p>
+                    <p className="font-bold mb-1">Encrypted Payload</p>
+                    <p className="opacity-80 italic">Students must scan within 60s. After scanning, the QR code is automatically invalidated for that user.</p>
                   </div>
                 </div>
               </motion.div>

@@ -3,7 +3,7 @@
 
 /**
  * @fileOverview Centralized Data Persistence Layer for EduScan.
- * Handles Users, Subjects, Faculties, and Attendance using LocalStorage.
+ * Handles Users, Subjects, Faculties, QR Sessions, and Attendance using LocalStorage.
  */
 
 export type UserRole = 'Admin' | 'Teacher' | 'Student';
@@ -36,6 +36,17 @@ export interface AttendanceRecord {
   status: 'Present' | 'Absent' | 'Late';
   markedBy: string;
   timestamp?: string;
+}
+
+export interface QRSession {
+  id: string;
+  subjectId: string;
+  subjectName: string;
+  faculty: string;
+  semester: number;
+  generatedAt: string;
+  expiresAt: string;
+  token: string;
 }
 
 export interface Subject {
@@ -141,7 +152,6 @@ export function deleteUser(userId: string) {
   const updatedUsers = users.filter(u => u.id !== userId);
   saveUsers(updatedUsers);
 
-  // Clean up subjects assigned to this teacher
   const subjects = getStoredSubjects();
   const updatedSubjects = subjects.map(s => {
     if (s.teacherId === userId) {
@@ -234,6 +244,23 @@ export function saveAttendanceRecords(records: AttendanceRecord[]) {
   }
 }
 
+export function getQRSessions(): QRSession[] {
+  if (!isClient) return [];
+  const stored = localStorage.getItem('eduscan_qr_sessions');
+  if (!stored) return [];
+  try {
+    return JSON.parse(stored);
+  } catch (e) {
+    return [];
+  }
+}
+
+export function saveQRSessions(sessions: QRSession[]) {
+  if (isClient) {
+    localStorage.setItem('eduscan_qr_sessions', JSON.stringify(sessions));
+  }
+}
+
 export function markManualAttendance(records: Omit<AttendanceRecord, 'id'>[]) {
   const currentRecords = getAttendanceRecords();
   const newRecordsWithIds = records.map(r => ({ ...r, id: Math.random().toString(36).substring(2, 9) }));
@@ -262,18 +289,28 @@ export function recordScanAttendance(data: {
   subjectName: string;
   faculty: string;
   semester: number;
+  token: string;
 }) {
   const records = getAttendanceRecords();
+  const sessions = getQRSessions();
   const today = new Date().toISOString().split('T')[0];
   
+  // 1. Verify token exists and hasn't expired
+  const session = sessions.find(s => s.token === data.token);
+  if (!session) return { success: false, message: "Invalid or expired session token." };
+  
+  const now = new Date();
+  if (new Date(session.expiresAt) < now) return { success: false, message: "This QR code has expired." };
+
+  // 2. Prevent duplicate marks for same session
   const alreadyMarked = records.find(r => 
     r.studentId === data.studentId && 
     r.subjectId === data.subjectId && 
     r.date === today
   );
-  
-  if (alreadyMarked) return false;
+  if (alreadyMarked) return { success: false, message: "Attendance already marked for this session today." };
 
+  // 3. Register Attendance
   const newRecord: AttendanceRecord = {
     id: Math.random().toString(36).substring(2, 9),
     studentId: data.studentId,
@@ -292,6 +329,7 @@ export function recordScanAttendance(data: {
   const updatedRecords = [...records, newRecord];
   saveAttendanceRecords(updatedRecords);
 
+  // Update user stats
   const users = getStoredUsers();
   const userIdx = users.findIndex(u => u.id === data.studentId);
   if (userIdx !== -1) {
@@ -300,17 +338,9 @@ export function recordScanAttendance(data: {
     const totalCount = studentRecords.length;
     users[userIdx].attendanceRate = Math.round((presentCount / (totalCount || 1)) * 100);
     saveUsers(users);
-    
-    const session = localStorage.getItem('user_session');
-    if (session) {
-      const parsedSession = JSON.parse(session);
-      if (parsedSession.id === data.studentId) {
-        localStorage.setItem('user_session', JSON.stringify(users[userIdx]));
-      }
-    }
   }
 
-  return true;
+  return { success: true, message: "Attendance registered successfully." };
 }
 
 export function login(userId: string, passwordInput: string, role: UserRole): User | null {

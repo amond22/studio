@@ -68,6 +68,13 @@ export interface Faculty {
   subjects: number;
 }
 
+export interface VacationPeriod {
+  id: string;
+  title: string;
+  start: string;
+  end: string;
+}
+
 export interface NetworkSettings {
   restrictionEnabled: boolean;
   wifiSsid: string;
@@ -75,6 +82,8 @@ export interface NetworkSettings {
   ipRangeEnd: string;
   openingDate: string;
   closingDate: string;
+  holidays: string[]; // Array of YYYY-MM-DD
+  vacations: VacationPeriod[];
 }
 
 const DEFAULT_LOGO = "https://picsum.photos/seed/edu1/200/200";
@@ -131,7 +140,9 @@ const DEFAULT_NETWORK_SETTINGS: NetworkSettings = {
   ipRangeStart: "192.168.1.1",
   ipRangeEnd: "192.168.1.255",
   openingDate: new Date().toISOString().split('T')[0],
-  closingDate: new Date(new Date().getFullYear(), 11, 31).toISOString().split('T')[0]
+  closingDate: new Date(new Date().getFullYear(), 11, 31).toISOString().split('T')[0],
+  holidays: [],
+  vacations: []
 };
 
 const isClient = typeof window !== 'undefined';
@@ -219,7 +230,11 @@ export function getNetworkSettings(): NetworkSettings {
   const stored = localStorage.getItem('eduscan_network_settings');
   if (!stored) return DEFAULT_NETWORK_SETTINGS;
   try {
-    return JSON.parse(stored);
+    const parsed = JSON.parse(stored);
+    return {
+      ...DEFAULT_NETWORK_SETTINGS,
+      ...parsed
+    };
   } catch (e) {
     return DEFAULT_NETWORK_SETTINGS;
   }
@@ -270,7 +285,8 @@ export function saveQRSessions(sessions: QRSession[]) {
 }
 
 /**
- * Calculates attendance rate based on days passed since college opening.
+ * Calculates attendance rate based on real working days passed since college opening.
+ * Excludes Saturdays (Nepal standard), manual holidays, and vacation ranges.
  */
 export function calculateStudentAttendanceRate(studentId: string, records: AttendanceRecord[]): number {
   const settings = getNetworkSettings();
@@ -278,20 +294,45 @@ export function calculateStudentAttendanceRate(studentId: string, records: Atten
   const closing = new Date(settings.closingDate);
   const now = new Date();
   
-  // Calculate end boundary (cannot exceed closing date)
+  // Calculate end boundary (cannot exceed closing date or current time)
   const end = now < closing ? now : closing;
   
-  // If college hasn't opened yet
   if (now < opening) return 0;
 
-  // Calculate days passed since opening
-  const diffTime = Math.abs(end.getTime() - opening.getTime());
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) || 1; // Minimum 1 day for rate denominator
+  let workingDaysCount = 0;
+  const tempDate = new Date(opening);
+
+  while (tempDate <= end) {
+    const dateStr = tempDate.toISOString().split('T')[0];
+    const dayOfWeek = tempDate.getDay(); // 0 is Sunday, 6 is Saturday
+
+    // Check if it's a Saturday (Nepal standard holiday)
+    const isSaturday = dayOfWeek === 6;
+    
+    // Check if it's a manually set holiday
+    const isManualHoliday = settings.holidays.includes(dateStr);
+    
+    // Check if it's within a vacation period
+    const isInVacation = settings.vacations.some(v => dateStr >= v.start && dateStr <= v.end);
+
+    if (!isSaturday && !isManualHoliday && !isInVacation) {
+      workingDaysCount++;
+    }
+
+    tempDate.setDate(tempDate.getDate() + 1);
+  }
+
+  if (workingDaysCount === 0) return 0;
   
   const studentRecords = records.filter(r => r.studentId === studentId);
-  const presentCount = studentRecords.filter(r => r.status === 'Present' || r.status === 'Late').length;
+  // Count distinct days student was present/late
+  const distinctAttendanceDays = new Set(
+    studentRecords
+      .filter(r => r.status === 'Present' || r.status === 'Late')
+      .map(r => r.date)
+  ).size;
   
-  return Math.min(100, Math.round((presentCount / diffDays) * 100));
+  return Math.min(100, Math.round((distinctAttendanceDays / workingDaysCount) * 100));
 }
 
 export function recalculateAllAttendanceRates() {
@@ -314,16 +355,7 @@ export function markManualAttendance(records: Omit<AttendanceRecord, 'id'>[]) {
   const updatedRecords = [...currentRecords, ...newRecordsWithIds];
   saveAttendanceRecords(updatedRecords);
 
-  const users = getStoredUsers();
-  const uniqueStudentIds = Array.from(new Set(records.map(r => r.studentId)));
-  
-  uniqueStudentIds.forEach(studentId => {
-    const userIdx = users.findIndex(u => u.id === studentId);
-    if (userIdx !== -1) {
-      users[userIdx].attendanceRate = calculateStudentAttendanceRate(studentId, updatedRecords);
-    }
-  });
-  saveUsers(users);
+  recalculateAllAttendanceRates();
 }
 
 export function recordScanAttendance(data: {
@@ -376,13 +408,7 @@ export function recordScanAttendance(data: {
 
   const updatedRecords = [...records, newRecord];
   saveAttendanceRecords(updatedRecords);
-
-  const users = getStoredUsers();
-  const userIdx = users.findIndex(u => u.id === data.studentId);
-  if (userIdx !== -1) {
-    users[userIdx].attendanceRate = calculateStudentAttendanceRate(data.studentId, updatedRecords);
-    saveUsers(users);
-  }
+  recalculateAllAttendanceRates();
 
   return { success: true, message: "Attendance registered successfully." };
 }

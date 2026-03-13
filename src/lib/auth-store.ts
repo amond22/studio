@@ -1,5 +1,9 @@
-
 "use client";
+
+/**
+ * @fileOverview Centralized Data Persistence Layer for EduScan.
+ * Handles Users, Subjects, Faculties, and Attendance using LocalStorage.
+ */
 
 export type UserRole = 'Admin' | 'Teacher' | 'Student';
 
@@ -95,7 +99,7 @@ const DEFAULT_USERS: User[] = [
 
 const DEFAULT_FACULTIES: Faculty[] = [
   { id: "BIT", name: "BIT", longName: "Bachelor of Information Technology", semesters: 8, subjects: 42 },
-  { id: "BBA", name: "BBA", longName: "BBA", longName_alt: "Bachelor of Business Administration", semesters: 8, subjects: 38 },
+  { id: "BBA", name: "BBA", longName: "Bachelor of Business Administration", semesters: 8, subjects: 38 },
   { id: "BHM", name: "BHM", longName: "Bachelor of Hotel Management", semesters: 8, subjects: 35 },
 ];
 
@@ -180,8 +184,9 @@ export function setCollegeLogo(url: string) {
 export function getNetworkSettings(): NetworkSettings {
   if (!isClient) return DEFAULT_NETWORK_SETTINGS;
   const stored = localStorage.getItem('eduscan_network_settings');
+  if (!stored) return DEFAULT_NETWORK_SETTINGS;
   try {
-    return stored ? JSON.parse(stored) : DEFAULT_NETWORK_SETTINGS;
+    return JSON.parse(stored);
   } catch (e) {
     return DEFAULT_NETWORK_SETTINGS;
   }
@@ -197,8 +202,9 @@ export function saveNetworkSettings(settings: NetworkSettings) {
 export function getAttendanceRecords(): AttendanceRecord[] {
   if (!isClient) return [];
   const stored = localStorage.getItem('eduscan_attendance_records');
+  if (!stored) return [];
   try {
-    return stored ? JSON.parse(stored) : [];
+    return JSON.parse(stored);
   } catch (e) {
     return [];
   }
@@ -213,7 +219,7 @@ export function saveAttendanceRecords(records: AttendanceRecord[]) {
 
 export function markManualAttendance(records: Omit<AttendanceRecord, 'id'>[]) {
   const currentRecords = getAttendanceRecords();
-  const newRecordsWithIds = records.map(r => ({ ...r, id: Math.random().toString(36).substr(2, 9) }));
+  const newRecordsWithIds = records.map(r => ({ ...r, id: Math.random().toString(36).substring(2, 9) }));
   const updatedRecords = [...currentRecords, ...newRecordsWithIds];
   saveAttendanceRecords(updatedRecords);
 
@@ -252,7 +258,7 @@ export function recordScanAttendance(data: {
   if (alreadyMarked) return false;
 
   const newRecord: AttendanceRecord = {
-    id: Math.random().toString(36).substr(2, 9),
+    id: Math.random().toString(36).substring(2, 9),
     studentId: data.studentId,
     studentName: data.studentName,
     subjectId: data.subjectId,

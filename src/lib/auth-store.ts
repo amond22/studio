@@ -111,8 +111,8 @@ const DEFAULT_USERS: User[] = [
 
 const DEFAULT_FACULTIES: Faculty[] = [
   { id: "BIT", name: "BIT", longName: "Bachelor of Information Technology", semesters: 8, subjects: 42 },
-  { id: "BBA", name: "BBA", longName: "Bachelor of Business Administration", semesters: 8, subjects: 38 },
-  { id: "BHM", name: "BHM", longName: "Bachelor of Hotel Management", semesters: 8, subjects: 35 },
+  { id: "BBA", name: "BBA", longName: "BBA", semesters: 8, subjects: 38 },
+  { id: "BHM", name: "BHM", longName: "BHM", semesters: 8, subjects: 35 },
 ];
 
 const DEFAULT_SUBJECTS: Subject[] = [
@@ -258,6 +258,8 @@ export function getQRSessions(): QRSession[] {
 export function saveQRSessions(sessions: QRSession[]) {
   if (isClient) {
     localStorage.setItem('eduscan_qr_sessions', JSON.stringify(sessions));
+    // Important: dispatch storage event for cross-tab sync in same browser
+    window.dispatchEvent(new Event('storage'));
   }
 }
 
@@ -295,22 +297,30 @@ export function recordScanAttendance(data: {
   const sessions = getQRSessions();
   const today = new Date().toISOString().split('T')[0];
   
-  // 1. Verify token exists and hasn't expired
-  const session = sessions.find(s => s.token === data.token);
-  if (!session) return { success: false, message: "Invalid or expired session token." };
+  // 1. Verify token exists (case-insensitive and trimmed for robustness)
+  const session = sessions.find(s => s.token.trim() === data.token.trim());
   
+  if (!session) {
+    return { success: false, message: "Invalid session token. Please try again." };
+  }
+  
+  // 2. Check Expiry
   const now = new Date();
-  if (new Date(session.expiresAt) < now) return { success: false, message: "This QR code has expired." };
+  if (new Date(session.expiresAt) < now) {
+    return { success: false, message: "This QR code has expired (60s limit)." };
+  }
 
-  // 2. Prevent duplicate marks for same session
+  // 3. Prevent duplicate marks for same session
   const alreadyMarked = records.find(r => 
     r.studentId === data.studentId && 
     r.subjectId === data.subjectId && 
     r.date === today
   );
-  if (alreadyMarked) return { success: false, message: "Attendance already marked for this session today." };
+  if (alreadyMarked) {
+    return { success: false, message: "Attendance already marked for this subject today." };
+  }
 
-  // 3. Register Attendance
+  // 4. Register Attendance
   const newRecord: AttendanceRecord = {
     id: Math.random().toString(36).substring(2, 9),
     studentId: data.studentId,

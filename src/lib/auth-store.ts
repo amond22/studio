@@ -136,6 +136,22 @@ export function saveUsers(users: User[]) {
   }
 }
 
+export function deleteUser(userId: string) {
+  const users = getStoredUsers();
+  const updatedUsers = users.filter(u => u.id !== userId);
+  saveUsers(updatedUsers);
+
+  // Clean up subjects assigned to this teacher
+  const subjects = getStoredSubjects();
+  const updatedSubjects = subjects.map(s => {
+    if (s.teacherId === userId) {
+      return { ...s, teacherId: "", teacherName: "Unassigned" };
+    }
+    return s;
+  });
+  saveSubjects(updatedSubjects);
+}
+
 export function getStoredFaculties(): Faculty[] {
   if (!isClient) return DEFAULT_FACULTIES;
   const stored = localStorage.getItem('eduscan_faculties');

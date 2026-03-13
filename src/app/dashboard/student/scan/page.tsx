@@ -56,11 +56,14 @@ export default function StudentScannerPage() {
       const html5QrCode = new Html5Qrcode("reader");
       html5QrCodeRef.current = html5QrCode;
 
+      // Distance-optimized configuration
       const config = { 
-        fps: 20, 
+        fps: 30, // Higher FPS for faster movement detection
         qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
           const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-          return { width: Math.floor(minEdge * 0.8), height: Math.floor(minEdge * 0.8) };
+          // Larger box to help with distance scanning
+          const boxSize = Math.floor(minEdge * 0.75);
+          return { width: boxSize, height: boxSize };
         },
         aspectRatio: 1.0,
       };
@@ -78,7 +81,7 @@ export default function StudentScannerPage() {
       setHasCameraPermission(true);
     } catch (err) {
       setHasCameraPermission(false);
-      toast({ variant: 'destructive', title: 'Camera Error', description: 'Could not access camera hardware.' });
+      toast({ variant: 'destructive', title: 'Camera Error', description: 'Could not access camera hardware. Please check permissions.' });
     } finally {
       setLoading(false);
       isInitializingRef.current = false;
@@ -100,10 +103,11 @@ export default function StudentScannerPage() {
 
       if (!user) {
         toast({ variant: "destructive", title: "Error", description: "No active session." });
+        setLoading(false);
         return;
       }
 
-      // Security Checks: Semester/Faculty Match (handling string/number types)
+      // Security Checks: Semester/Faculty Match
       if (user.faculty !== qrData.faculty || user.semester?.toString() !== qrData.semester?.toString()) {
         playSound('error');
         toast({
@@ -151,47 +155,50 @@ export default function StudentScannerPage() {
     <div className="max-w-xl mx-auto space-y-6 pb-12">
       <div className="text-center">
         <h1 className="text-2xl font-headline font-bold text-primary">Attendance Scanner</h1>
-        <p className="text-muted-foreground text-xs">Point your camera at the teacher's QR code</p>
+        <p className="text-muted-foreground text-xs font-medium">Position the QR code within the frame for instant scanning</p>
       </div>
 
       <AnimatePresence mode="wait">
         {!scanResult ? (
           <motion.div key="scanner" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-            <Card className="border-none shadow-2xl overflow-hidden bg-black aspect-square rounded-[2rem] relative">
+            <Card className="border-none shadow-2xl overflow-hidden bg-black aspect-square rounded-[2.5rem] relative group">
               <div id="reader" className="w-full h-full [&_video]:object-cover"></div>
               
               <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-10">
-                <div className="w-[80%] h-[80%] border-2 border-white/20 rounded-[2rem] relative overflow-hidden">
+                <div className="w-[75%] h-[75%] border-4 border-white/20 rounded-[2rem] relative overflow-hidden backdrop-blur-[1px]">
+                  {/* High-visibility scanning line */}
                   <motion.div 
                     animate={{ top: ["0%", "100%", "0%"] }}
-                    transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-                    className="absolute left-0 right-0 h-0.5 bg-primary shadow-[0_0_15px_rgba(var(--primary),0.8)] z-20"
+                    transition={{ duration: 2.5, repeat: Infinity, ease: "linear" }}
+                    className="absolute left-0 right-0 h-1 bg-primary/80 shadow-[0_0_20px_rgba(var(--primary),1)] z-20"
                   />
-                  <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-primary rounded-tl-xl" />
-                  <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-primary rounded-tr-xl" />
-                  <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-primary rounded-bl-xl" />
-                  <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-primary rounded-br-xl" />
+                  
+                  {/* Reinforced corner brackets for distance targeting */}
+                  <div className="absolute top-0 left-0 w-12 h-12 border-t-4 border-l-4 border-primary rounded-tl-xl" />
+                  <div className="absolute top-0 right-0 w-12 h-12 border-t-4 border-r-4 border-primary rounded-tr-xl" />
+                  <div className="absolute bottom-0 left-0 w-12 h-12 border-b-4 border-l-4 border-primary rounded-bl-xl" />
+                  <div className="absolute bottom-0 right-0 w-12 h-12 border-b-4 border-r-4 border-primary rounded-br-xl" />
                 </div>
               </div>
 
               {loading && (
                 <div className="absolute inset-0 bg-black/60 z-20 flex flex-col items-center justify-center text-white backdrop-blur-sm">
-                  <RefreshCw className="w-10 h-10 text-primary animate-spin mb-4" />
-                  <p className="text-xs font-bold tracking-widest uppercase">Verifying...</p>
+                  <RefreshCw className="w-12 h-12 text-primary animate-spin mb-4" />
+                  <p className="text-sm font-bold tracking-widest uppercase">Processing...</p>
                 </div>
               )}
             </Card>
 
-            <Card className="border-none shadow-sm p-6 bg-white">
-               <Label className="text-xs font-bold uppercase tracking-wider mb-2 block">Manual Token Entry</Label>
+            <Card className="border-none shadow-sm p-6 bg-white rounded-2xl">
+               <Label className="text-xs font-bold uppercase tracking-wider mb-3 block text-muted-foreground">Manual Token Entry</Label>
                <div className="flex gap-2">
                  <Input 
-                   placeholder="Enter code from teacher" 
+                   placeholder="Enter code provided by teacher" 
                    value={manualCode} 
                    onChange={(e) => setManualCode(e.target.value)} 
-                   className="h-11"
+                   className="h-12 border-muted-foreground/20 focus:ring-primary rounded-xl"
                  />
-                 <Button onClick={handleManualEntry} variant="secondary" className="px-6 h-11">Verify</Button>
+                 <Button onClick={handleManualEntry} variant="secondary" className="px-8 h-12 rounded-xl font-bold">Verify</Button>
                </div>
             </Card>
           </motion.div>
@@ -201,28 +208,29 @@ export default function StudentScannerPage() {
               <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center shadow-lg mx-auto mb-6">
                 <CheckCircle2 className="w-10 h-10 text-white" />
               </div>
-              <h2 className="text-2xl font-headline font-bold text-green-600 mb-2">Registered!</h2>
-              <p className="text-muted-foreground text-sm mb-8">Your attendance has been recorded.</p>
+              <h2 className="text-2xl font-headline font-bold text-green-600 mb-2">Success!</h2>
+              <p className="text-muted-foreground text-sm mb-8 font-medium">Your attendance has been officially recorded.</p>
               
-              <div className="bg-muted/50 rounded-2xl p-5 text-left space-y-3 mb-8">
+              <div className="bg-muted/50 rounded-2xl p-6 text-left space-y-4 mb-8 border border-muted-foreground/10">
                 <div>
-                   <p className="text-[10px] font-bold uppercase text-muted-foreground">Subject</p>
-                   <p className="font-bold text-sm">{scanResult.subject}</p>
+                   <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest">Subject</p>
+                   <p className="font-bold text-base text-primary">{scanResult.subject}</p>
                 </div>
-                <div className="flex justify-between items-center pt-3 border-t">
+                <div className="flex justify-between items-center pt-4 border-t border-muted-foreground/10">
                   <div>
-                    <p className="text-[10px] font-bold uppercase text-muted-foreground">Time</p>
-                    <p className="text-xs font-bold">{new Date().toLocaleTimeString()}</p>
+                    <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest">Logged At</p>
+                    <p className="text-xs font-bold text-foreground">{new Date().toLocaleTimeString()}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-[10px] font-bold uppercase text-muted-foreground">Status</p>
-                    <p className="text-xs font-bold text-green-600">PRESENT</p>
+                    <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest">Status</p>
+                    <p className="text-xs font-bold text-green-600 bg-green-50 px-3 py-1 rounded-full border border-green-200">PRESENT</p>
                   </div>
                 </div>
               </div>
 
-              <Button className="w-full h-12 rounded-xl font-bold" onClick={() => { setScanResult(null); startScanner(); }}>
-                Scan Another
+              <Button className="w-full h-14 rounded-2xl font-bold text-lg button-hover" onClick={() => { setScanResult(null); startScanner(); }}>
+                <Scan className="w-5 h-5 mr-2" />
+                Scan New QR
               </Button>
             </Card>
           </motion.div>

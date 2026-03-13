@@ -6,7 +6,7 @@ import {
   Users, Plus, Mail, Shield, UserPlus, GraduationCap, 
   Search, FileBarChart, Filter, ChevronRight, Eye, 
   MapPin, Hash, BarChart3, Edit, Save, X, KeyRound, 
-  Upload, Camera, Trash2, BookOpen, UserMinus 
+  Upload, Camera, Trash2, BookOpen, UserMinus, Phone 
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -69,6 +69,7 @@ export default function UsersManagementPage() {
   const [newLcNo, setNewLcNo] = useState("");
   const [newAddress, setNewAddress] = useState("");
   const [newPhoto, setNewPhoto] = useState("");
+  const [newParentContact, setNewParentContact] = useState("");
 
   const { toast } = useToast();
 
@@ -90,6 +91,7 @@ export default function UsersManagementPage() {
     setNewLcNo("");
     setNewAddress("");
     setNewPhoto("");
+    setNewParentContact("");
   };
 
   const handleOpenAdd = () => {
@@ -110,6 +112,7 @@ export default function UsersManagementPage() {
     setNewLcNo(user.lcNo || "");
     setNewAddress(user.address || "");
     setNewPhoto(user.photo || "");
+    setNewParentContact(user.parentContact || "");
     setOpen(true);
   };
 
@@ -167,7 +170,8 @@ export default function UsersManagementPage() {
       lcNo: newRole === 'Student' ? newLcNo : undefined,
       address: newRole === 'Student' ? newAddress : undefined,
       attendanceRate: isEditMode ? (users.find(u => u.id === originalId)?.attendanceRate || 0) : 0,
-      photo: finalPhoto
+      photo: finalPhoto,
+      parentContact: newRole === 'Student' ? newParentContact.trim() : undefined
     };
 
     let updatedUsersList;
@@ -269,29 +273,9 @@ export default function UsersManagementPage() {
                   </div>
                 </div>
 
-                {newRole === 'Teacher' && isEditMode && (
-                   <div className="p-4 bg-accent/5 border border-accent/10 rounded-xl space-y-3">
-                     <p className="text-xs font-bold uppercase text-accent tracking-widest flex items-center gap-2">
-                       <BookOpen className="w-3.5 h-3.5" /> Assigned Subjects
-                     </p>
-                     <div className="space-y-2">
-                       {allSubjects.filter(s => s.teacherId === originalId).length > 0 ? (
-                         allSubjects.filter(s => s.teacherId === originalId).map(s => (
-                           <div key={s.id} className="flex items-center justify-between text-xs p-2 bg-white rounded border">
-                             <span className="font-medium">{s.name} ({s.code})</span>
-                             <Badge variant="outline" className="text-[9px]">{s.faculty} Sem {s.semester}</Badge>
-                           </div>
-                         ))
-                       ) : (
-                         <p className="text-[10px] text-muted-foreground italic">No subjects assigned yet.</p>
-                       )}
-                     </div>
-                   </div>
-                )}
-
                 {newRole === 'Student' && (
                   <div className="space-y-4 pt-4 border-t">
-                    <p className="text-xs font-bold uppercase text-primary tracking-widest">Academic Mapping</p>
+                    <p className="text-xs font-bold uppercase text-primary tracking-widest">Academic & Emergency Info</p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label>Faculty</Label>
@@ -312,6 +296,10 @@ export default function UsersManagementPage() {
                             {[1,2,3,4,5,6,7,8].map(s => <SelectItem key={s} value={s.toString()}>Semester {s}</SelectItem>)}
                           </SelectContent>
                         </Select>
+                      </div>
+                      <div className="space-y-2 sm:col-span-2">
+                        <Label className="flex items-center gap-2"><Phone className="w-3 h-3" /> Parent/Emergency Contact</Label>
+                        <Input placeholder="e.g., 9845xxxxxx" value={newParentContact} onChange={(e) => setNewParentContact(e.target.value)} />
                       </div>
                     </div>
                   </div>
@@ -382,7 +370,7 @@ export default function UsersManagementPage() {
                 <TableRow>
                   <TableHead>User Identity</TableHead>
                   <TableHead className="hidden sm:table-cell">Portal Role</TableHead>
-                  <TableHead className="hidden md:table-cell">Login ID</TableHead>
+                  <TableHead className="hidden md:table-cell">Contact/ID</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -398,11 +386,6 @@ export default function UsersManagementPage() {
                         <div>
                           <p className="font-bold text-sm">{user.name}</p>
                           <p className="text-[10px] text-muted-foreground hidden xs:block">{user.email}</p>
-                          <div className="sm:hidden mt-1">
-                            <Badge variant={user.role === 'Admin' ? 'default' : user.role === 'Teacher' ? 'accent' : 'secondary'} className="text-[8px] h-4">
-                              {user.role}
-                            </Badge>
-                          </div>
                         </div>
                       </div>
                     </TableCell>
@@ -411,7 +394,12 @@ export default function UsersManagementPage() {
                         {user.role}
                       </Badge>
                     </TableCell>
-                    <TableCell className="hidden md:table-cell font-mono text-xs uppercase text-primary font-bold">{user.id}</TableCell>
+                    <TableCell className="hidden md:table-cell">
+                       <div className="flex flex-col">
+                         <span className="font-mono text-xs uppercase text-primary font-bold">{user.id}</span>
+                         {user.parentContact && <span className="text-[10px] text-muted-foreground flex items-center gap-1"><Phone className="w-2.5 h-2.5" /> {user.parentContact}</span>}
+                       </div>
+                    </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
                         <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" onClick={() => handleOpenEdit(user)}>
@@ -464,24 +452,11 @@ export default function UsersManagementPage() {
                       <p className="text-sm font-bold">Local PW</p>
                     </div>
                   </div>
-                  {selectedUser.role === 'Teacher' && (
-                    <div className="p-3 bg-muted rounded-xl space-y-2">
-                       <p className="text-[10px] font-bold uppercase text-muted-foreground">Assigned Portfolio</p>
-                       <div className="space-y-1">
-                         {allSubjects.filter(s => s.teacherId === selectedUser.id).map(s => (
-                           <div key={s.id} className="text-[11px] font-medium">• {s.name} ({s.code})</div>
-                         ))}
-                         {allSubjects.filter(s => s.teacherId === selectedUser.id).length === 0 && (
-                            <p className="text-[10px] italic">No active assignments.</p>
-                         )}
-                       </div>
-                    </div>
-                  )}
                   {selectedUser.role === 'Student' && (
                     <div className="space-y-2">
                       <div className="p-3 bg-muted rounded-xl flex justify-between items-center text-xs">
-                        <span className="font-bold text-muted-foreground">FACULTY</span>
-                        <span className="font-bold">{selectedUser.faculty} (Sem {selectedUser.semester})</span>
+                        <span className="font-bold text-muted-foreground">PARENT CONTACT</span>
+                        <span className="font-bold">{selectedUser.parentContact || "N/A"}</span>
                       </div>
                       <div className="p-3 bg-muted rounded-xl flex justify-between items-center text-xs">
                         <span className="font-bold text-muted-foreground">ATTENDANCE</span>

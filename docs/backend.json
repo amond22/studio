@@ -12,7 +12,8 @@
         "role": { "type": "string", "enum": ["Admin", "Teacher", "Student"] },
         "faculty": { "type": "string" },
         "semester": { "type": "number" },
-        "photo": { "type": "string" }
+        "photo": { "type": "string" },
+        "parentContact": { "type": "string", "description": "Emergency or parent contact number." }
       },
       "required": ["id", "name", "role", "email"]
     },
@@ -27,7 +28,7 @@
         "subjectName": { "type": "string" },
         "date": { "type": "string", "format": "date" },
         "timestamp": { "type": "string", "format": "date-time" },
-        "status": { "type": "string", "enum": ["Present", "Late"] },
+        "status": { "type": "string", "enum": ["Present", "Late", "Absent"] },
         "networkVerified": { "type": "boolean" }
       },
       "required": ["studentId", "subjectId", "date", "status"]
